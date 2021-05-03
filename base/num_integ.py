@@ -90,9 +90,10 @@ class NumericalIntegration:
         # make all the supported techniques available
         self.supported_techniques = {
             "eulers_method": self.eulers_method,
-            "euler_cromer_method": self.euler_cromer_method,
-            "newtons_method": self.newtons_method,
-            "runge_kutta4": self.runge_kutta4
+            "heuns_method": self.heuns_method,
+            "runge_kutta2": self.runge_kutta2,
+            "runge_kutta4": self.runge_kutta4,
+            "leapfrog_method": self.leapfrog_method
         }
 
         # make the selected technique available
@@ -258,6 +259,45 @@ class NumericalIntegration:
         return x_arr, y_arr
 
     @staticmethod
+    def leapfrog_method(function=None, x_range=[], step_value=0, y_initial=[]):
+        """
+        Method to calculate the leapfrog method for numerical integration.
+        """
+
+        # set up the number of steps set to occur
+        n_steps = int((x_range[1] - x_range[0]) / step_value)
+
+        # set up an array to contain the independent variable
+        x_arr = step_value * numpy.arange(n_steps)
+
+        # set up another array to contain the dependent variable
+        y_arr = numpy.empty([len(y_initial), len(x_arr)])
+
+        # set up a buffer array to be updated with the results of the integration calculations
+        y_buffer = numpy.array(y_initial)
+
+        # set up an intermediary buffer array using 2nd order Runge-Kutta
+        y_intermediary = y_buffer + 0.5 * step_value * function(
+            x=x_range[0] + (step_value / 4),
+            y=y_buffer + (step_value * function(x=x_range[0], y=y_buffer) / 4)
+        )
+
+        # perform the RK4 integration
+        for i, x_value in enumerate(x_arr):
+            # write the buffer values to the dependent variable array
+            y_arr[i] = y_buffer
+
+            # calculate the intended next y value and update the buffer array
+            y_next = step_value * function(x=x_value + step_value / 2, y=y_intermediary)
+            y_buffer += y_next
+
+            # calculate the next intermediary value and update the intermediary buffer
+            y_int_next = step_value * function(x=x_value + step_value, y=y_buffer)
+            y_intermediary += y_int_next
+
+        return x_arr, y_arr
+
+    @staticmethod
     def _validate_parameters(technique="", supported=None, f_class=None, x_range=[], step_value=0, y_initial=[]):
         """
         Method to validate the inputted parameters intended to be executed.
@@ -328,3 +368,5 @@ class NumericalIntegration:
             step_value=step_value,
             y_initial=y_initial
         )
+
+        return x_arr, y_arr
