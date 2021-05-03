@@ -101,8 +101,9 @@ class NumericalIntegration:
     @staticmethod
     def eulers_method(function=None, x_range=[], step_value=0, y_initial=[]):
         """
-        Euler's method for numerical integration. In Euler's method we use a strategy similar to that
-        of a Taylor series expansion, but neglect the higher order, O(h**2), terms.
+        Euler's method for solving initial value problems for numerical integration.
+        In Euler's method, we employ a strategy similar to that of a Taylor series
+        expansion, but neglecting the higher order, O(h**2), terms.
         """
 
         # set up the number of steps set to occur
@@ -131,23 +132,130 @@ class NumericalIntegration:
         return x_arr, y_arr
 
     @staticmethod
-    def euler_cromer_method(function=None, x_range=[], step_value=0, y_initial=[]):
+    def heuns_method(function=None, x_range=[], step_value=0, y_initial=[]):
         """
-        The Euler-Cromer method for numerical integration. Here we update the differential using Euler's
-        method, then use the updated differential to update the desired variable.
+        Heun's method for numerical integration.
         """
 
+        # set up the number of steps set to occur
+        n_steps = int((x_range[1] - x_range[0]) / step_value)
+
+        # set up an array to contain the independent variable
+        x_arr = step_value * numpy.arange(n_steps)
+
+        # set up another array to contain the dependent variable
+        y_arr = numpy.empty([len(y_initial), len(x_arr)])
+
+        # set up a buffer array to be updated with the results of the integration calculations
+        y_buffer = numpy.array(y_initial)
+
+        # perform the Euler integration
+        for i, x_value in enumerate(x_arr):
+            # write the buffer values to the dependent variable array
+            y_arr[i] = y_buffer
+
+            # calculate the next x_value needed for the calculation
+            x_intermediate = x_value + step_value
+
+            # calculate the intermediate y_buffer value
+            y_intermediate = y_buffer + step_value * function(x=x_value, y=y_buffer)
+
+            # calculate the results of the current step using the inputted function
+            y_next = step_value * (
+                    function(x=x_value, y=y_buffer) + function(x=x_intermediate, y=y_intermediate)
+            ) / 2
+
+            # write the results of the calculation(s) to the buffer array
+            y_buffer += y_next
+
+        return x_arr, y_arr
+
     @staticmethod
-    def newtons_method(function=None, x_range=[], step_value=0, y_initial=[]):
+    def runge_kutta2(function=None, x_range=[], step_value=0, y_initial=[]):
         """
-        Newton's method for numerical integration.
+        2nd order Runge-Kutta method for numerical integration.
         """
+
+        # set up the number of steps set to occur
+        n_steps = int((x_range[1] - x_range[0]) / step_value)
+
+        # set up an array to contain the independent variable
+        x_arr = step_value * numpy.arange(n_steps)
+
+        # set up another array to contain the dependent variable
+        y_arr = numpy.empty([len(y_initial), len(x_arr)])
+
+        # set up a buffer array to be updated with the results of the integration calculations
+        y_buffer = numpy.array(y_initial)
+
+        # perform the RK2 integration
+        for i, x_value in enumerate(x_arr):
+            # write the buffer values to the dependent variable array
+            y_arr[i] = y_buffer
+
+            # calculate the intermediate y_buffer value
+            y_intermediate = step_value * function(x=x_value, y=y_buffer)
+
+            # calculate the parameters needed to find the next y value
+            x_param = x_value + 0.5 * step_value
+            y_param = y_buffer + 0.5 * y_intermediate
+
+            # calculate the intended next y value
+            y_next = step_value * function(x=x_param, y=y_param)
+
+            # write the results of the calculation(s) to the buffer array
+            y_buffer += y_next
+
+        return x_arr, y_arr
 
     @staticmethod
     def runge_kutta4(function=None, x_range=[], step_value=0, y_initial=[]):
         """
         4th order Runge-Kutta method for numerical integration.
         """
+
+        # set up the number of steps set to occur
+        n_steps = int((x_range[1] - x_range[0]) / step_value)
+
+        # set up an array to contain the independent variable
+        x_arr = step_value * numpy.arange(n_steps)
+
+        # set up another array to contain the dependent variable
+        y_arr = numpy.empty([len(y_initial), len(x_arr)])
+
+        # set up a buffer array to be updated with the results of the integration calculations
+        y_buffer = numpy.array(y_initial)
+
+        # perform the RK4 integration
+        for i, x_value in enumerate(x_arr):
+            # write the buffer values to the dependent variable array
+            y_arr[i] = y_buffer
+
+            # calculate the four necessary intermediate y_buffer value
+            y_intermediate1 = step_value * function(
+                x=x_value,
+                y=y_buffer
+            )
+            y_intermediate2 = step_value * function(
+                x=x_value + 0.5 * step_value,
+                y=y_buffer + 0.5 * y_intermediate1
+            )
+            y_intermediate3 = step_value * function(
+                x=x_value + 0.5 * step_value,
+                y=y_buffer + 0.5 * y_intermediate2
+            )
+            y_intermediate4 = step_value * function(
+                x=x_value + step_value,
+                y=y_buffer + y_intermediate3
+            )
+
+            # calculate the intended next y value
+            y_next = (y_intermediate1 + 2 * y_intermediate2 + 2 * y_intermediate3 + y_intermediate4) / 6
+
+            # write the results of the calculation(s) to the buffer array
+            y_buffer += y_next
+
+        return x_arr, y_arr
 
     @staticmethod
     def _validate_parameters(technique="", supported=None, f_class=None, x_range=[], step_value=0, y_initial=[]):
