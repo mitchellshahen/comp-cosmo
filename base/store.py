@@ -45,11 +45,11 @@ class Store:
 
         # ensure the intended data file exists and is a pickle file
         if not all(
-            [
-                os.path.exists(filepath),
-                os.path.isfile(filepath),
-                filepath.split(".")[-1] == "pickle"
-            ]
+                [
+                    os.path.exists(filepath),
+                    os.path.isfile(filepath),
+                    filepath.split(".")[-1] == "pickle"
+                ]
         ):
             raise IOError("Intended data file is not found or is incompatible.")
 
@@ -58,6 +58,38 @@ class Store:
             data = pickle.load(open_file)
 
         return data
+
+    def info(self, verbose=False):
+        """
+        Method to print useful information about the data store.
+        """
+
+        # print the administrative information
+        print("Computational Cosmology Data Store")
+        print("Maintainer: Mitchell Shahen")
+
+        # acquire a list of the files and ancillary directories in the data store
+        data_names = os.listdir(self.data_directory)
+
+        # obtain a list of the file sizes of all data files in the data store
+        data_sizes = []
+        for name in data_names:
+            filepath = os.path.join(self.data_directory, name)
+            size = os.path.getsize(filepath)
+            data_sizes.append(size)
+
+        # print the number of files contained within the data store
+        print("Files: {}".format(len(data_names)))
+
+        # print the complete size of the data store
+        print("Size: {} bytes".format(sum(data_sizes)))
+
+        # if verbose, print all the available data files
+        if verbose:
+            # enumerate all the data files contained within the data store
+            print("\nAll Data:")
+            for i, name in enumerate(data_names):
+                print("    {}: {} bytes".format(name, data_sizes[i]))
 
     def save(self, data=None, data_filename=""):
         """
@@ -84,3 +116,6 @@ class Store:
         # open the intended data file and save the data
         with open(filepath, 'wb') as open_file:
             pickle.dump(data, open_file, protocol=pickle.HIGHEST_PROTOCOL)
+
+
+Store().info(verbose=True)
