@@ -1,6 +1,12 @@
 """
-Module to set up unittesting of the Numerical Integration module: `base.num_integ.NumericalIntegration`
+Module for Testing of the Numerical Integration module: `base.num_integ.NumericalIntegration`
 """
+
+# pylint: disable=import-error
+# pylint: disable=invalid-name
+# pylint: disable=protected-access
+# pylint: disable=unused-argument
+# pylint: disable=wrong-import-position
 
 import numpy
 import sys
@@ -11,29 +17,35 @@ sys.path.append("../../../")
 
 from base.num_integ import NumericalIntegration
 
-# ---------- # VALID NUMERICALINTEGRATION PARAMETERS # ---------- #
-
-# valid numerical integration technique
-valid_technique = "eulers_method"
+# ---------- # VALID NUMERICALINTEGRATION CLASS FUNCTIONS # ---------- #
 
 
-# supported Function Class
-class ValidFClass:
+class ValidExpFunc:
     def __init__(self, a):
         self.a = a
 
     def function(self, x, y):
-        return numpy.array((-1.0 * self.a * y))
+        return numpy.array(-1.0 * self.a * y)
 
 
-# valid range of independent variable values
-valid_x_range = [0.0, 1.0]
+class ValidHarmOscill:
+    def __init__(self, w):
+        self.w = w
 
-# valid non-zero step value
-valid_step_value = 1.0
+    def function(self, x, y):
+        return numpy.array([y[1], -1 * (self.w ** 2) * (y[0] ** 3)])
 
-# valid initial dependent variable value(s)
-valid_y_initial = [0.0]
+
+# ---------- # VALID NUMERICALINTEGRATION CLASS FUNCTIONS # ---------- #
+
+
+class InvalidFunc:
+    def __init__(self, a, b):
+        self.a = a
+        self.b = b
+
+    def not_a_function(self, x, y):
+        return numpy.array(self.a + self.b + x + y)
 
 
 class NumericalIntegrationTestCase(unittest.TestCase):
@@ -46,10 +58,39 @@ class NumericalIntegrationTestCase(unittest.TestCase):
         Method to test the validate parameters functionality.
         """
 
+        # ---------- # VALID NUMERICAL INTEGRATION PARAMETERS # ---------- #
+
+        # valid numerical integration technique
+        valid_technique = "eulers_method"
+
+        # valid range of independent variable values
+        valid_x_range = [0.0, 1.0]
+
+        # valid non-zero step value
+        valid_step_value = 1.0
+
+        # valid initial dependent variable value(s)
+        valid_y_initial = [0.0]
+
+        # ---------- # INVALID NUMERICAL INTEGRATION PARAMETERS # ---------- #
+
+        # valid numerical integration technique
+        invalid_technique = "nothing"
+
+        # valid range of independent variable values
+        invalid_x_range = []
+
+        # valid non-zero step value
+        invalid_step_value = 0.0
+
+        # valid initial dependent variable value(s)
+        invalid_y_initial = ["hello", "world"]
+
+        # ---------- # NUMERICAL INTEGRATION UNIT TESTING # ---------- #
+
         # test that all valid parameters will cause the validate function to allow proceeding
-        proceed_all_valid = NumericalIntegration()._validate_parameters(
-            technique=valid_technique,
-            f_class=ValidFClass(a=0.0),
+        proceed_all_valid = NumericalIntegration(technique=valid_technique)._validate(
+            f_class=ValidExpFunc(a=0.0),
             x_range=valid_x_range,
             step_value=valid_step_value,
             y_initial=valid_y_initial,
@@ -58,10 +99,8 @@ class NumericalIntegrationTestCase(unittest.TestCase):
         self.assertTrue(proceed_all_valid)
 
         # test that the validate function will notice an erroneous integration technique
-        unsupported_technique = "nothing"
-        proceed_bad_technique = NumericalIntegration()._validate_parameters(
-            technique=unsupported_technique,
-            f_class=ValidFClass(a=0.0),
+        proceed_bad_technique = NumericalIntegration(technique=invalid_technique)._validate(
+            f_class=ValidExpFunc(a=0.0),
             x_range=valid_x_range,
             step_value=valid_step_value,
             y_initial=valid_y_initial,
@@ -70,12 +109,8 @@ class NumericalIntegrationTestCase(unittest.TestCase):
         self.assertFalse(proceed_bad_technique)
 
         # test that the validate function will notice an erroneous function class
-        class InvalidFClass:
-            pass
-
-        proceed_bad_f_class = NumericalIntegration()._validate_parameters(
-            technique=valid_technique,
-            f_class=InvalidFClass(),
+        proceed_bad_f_class = NumericalIntegration(technique=valid_technique)._validate(
+            f_class=InvalidFunc(a=0.0, b=0.0),
             x_range=valid_x_range,
             step_value=valid_step_value,
             y_initial=valid_y_initial,
@@ -84,10 +119,8 @@ class NumericalIntegrationTestCase(unittest.TestCase):
         self.assertFalse(proceed_bad_f_class)
 
         # test that the validate function will notice an erroneous x_range list
-        invalid_x_range = []
-        proceed_bad_x_range = NumericalIntegration()._validate_parameters(
-            technique=valid_technique,
-            f_class=ValidFClass(a=0.0),
+        proceed_bad_x_range = NumericalIntegration(technique=valid_technique)._validate(
+            f_class=ValidExpFunc(a=0.0),
             x_range=invalid_x_range,
             step_value=valid_step_value,
             y_initial=valid_y_initial,
@@ -96,10 +129,8 @@ class NumericalIntegrationTestCase(unittest.TestCase):
         self.assertFalse(proceed_bad_x_range)
 
         # test that the validate function will notice an erroneous step value input
-        invalid_step_value = 0
-        proceed_bad_step_value = NumericalIntegration()._validate_parameters(
-            technique=valid_technique,
-            f_class=ValidFClass(a=0.0),
+        proceed_bad_step_value = NumericalIntegration(technique=valid_technique)._validate(
+            f_class=ValidExpFunc(a=0.0),
             x_range=valid_x_range,
             step_value=invalid_step_value,
             y_initial=valid_y_initial,
@@ -108,10 +139,8 @@ class NumericalIntegrationTestCase(unittest.TestCase):
         self.assertFalse(proceed_bad_step_value)
 
         # test that the validate function will notice an erroneous initial y_value list
-        invalid_y_initial = ["hello", "world"]
-        proceed_bad_y_initial = NumericalIntegration()._validate_parameters(
-            technique=valid_technique,
-            f_class=ValidFClass(a=0.0),
+        proceed_bad_y_initial = NumericalIntegration(technique=valid_technique)._validate(
+            f_class=ValidExpFunc(a=0.0),
             x_range=valid_x_range,
             step_value=valid_step_value,
             y_initial=invalid_y_initial,
@@ -119,9 +148,9 @@ class NumericalIntegrationTestCase(unittest.TestCase):
         )
         self.assertFalse(proceed_bad_y_initial)
 
-    def test_eulers_method(self):
+    def test_integration_exponential(self, silent=True):
         """
-        Unit test to test that Euler's Method integrates and approximates an exponential function:
+        Unit test to test that each integration method approximately solves an exponential function:
             df/dx = -1.0 * a * f(x)
         The above differential equation yields the following when integrated:
             f(x) = f(0) * exp(-1.0 * a * x)
@@ -132,215 +161,96 @@ class NumericalIntegrationTestCase(unittest.TestCase):
         differential_coeff = 0.5
         initial_value = 10.0
 
-        # integrate the differential equation using Euler's Method
-        x_arr, y_arr = NumericalIntegration(technique="eulers_method").execute(
-            f_class=ValidFClass(a=differential_coeff),
-            x_range=[0.0, 10.0],
-            step_value=0.001,
-            y_initial=[initial_value],
-            silent=True
-        )
+        # acquire all the supported integration techniques
+        all_techniques = list(NumericalIntegration().supported_techniques.keys())
 
-        # ensure no validation errors have occurred
-        self.assertIsNotNone(x_arr)
-        self.assertIsNotNone(y_arr)
+        # iterate through each integration technique testing each gives a valid approximation
+        for integration_technique in all_techniques:
+            x_arr, y_arr = NumericalIntegration(technique=integration_technique).execute(
+                f_class=ValidExpFunc(a=differential_coeff),
+                x_range=[0.0, 10.0],
+                step_value=0.001,
+                y_initial=initial_value,
+                silent=silent
+            )
+            self.assertIsNotNone(
+                x_arr,
+                msg="Independent values array is None as the integration could not be performed."
+            )
+            self.assertIsNotNone(
+                y_arr,
+                msg="Dependent values array is None as the integration could not be performed."
+            )
 
-        # set up the validated x and y arrays using the known value of the integrated solution
-        y_solution = initial_value * numpy.exp(-1.0 * differential_coeff * x_arr)
+            # set up the validated x and y arrays using the known value of the integrated solution
+            y_solution = initial_value * numpy.exp(-1.0 * differential_coeff * x_arr)
 
-        # iterate and find the maximal allowed error before encountering convergence failures
-        convergence_failures = False
-        maximal_error = 1.0
-        while not convergence_failures:
-            for i, y_calc in enumerate(y_arr[0]):
-                y_known = y_solution[i]
-                if abs(y_calc - y_known) >= maximal_error:
-                    convergence_failures = True
-                    break
-            if not convergence_failures:
-                maximal_error /= 10
+            # set up variables to track convergence failures and the allowed error
+            convergence_failures = False
+            maximal_error = 1.0
 
-        print(
-            "Estimating the exact solution with Euler's Method using {} steps yielded no "
-            "convergence failures up to a maximal error of {}.".format(len(x_arr), maximal_error)
-        )
+            # iterate and find the maximal allowed error before encountering convergence failures
+            while not convergence_failures:
+                for i, __ in enumerate(x_arr):
+                    # obtain the calculated value at the current x_value
+                    y_calc = y_arr[0][i]
 
-    def test_heuns_method(self):
+                    # obtain the exact value at the current x_value
+                    y_known = y_solution[i]
+
+                    # calculate the relative y_value to be compared with a value of 1
+                    # Note: A relative y value of 1 indicates perfect convergence
+                    relative_y = y_calc / y_known
+
+                    # compare the relative y_value to perfect convergence
+                    if abs(relative_y - 1) >= maximal_error:
+                        convergence_failures = True
+                        break
+
+                # if not convergence failures are found, increase the precision
+                if not convergence_failures:
+                    maximal_error /= 10
+
+            if not silent:
+                # print a message including the maximal error for each integration technique
+                print(
+                    "Estimating the exact solution with {} using {} steps yielded no "
+                    "convergence failures up to a maximal error of {}.".format(
+                        integration_technique,
+                        len(x_arr),
+                        maximal_error
+                    )
+                )
+
+    def test_integration_harm_oscill(self, silent=True):
         """
-        Unit test to test that Heun's Method integrates and approximates an exponential function:
-            df/dx = -1.0 * a * f(x)
-        The above differential equation yields the following when integrated:
-            f(x) = f(0) * exp(-1.0 * a * x)
-        We will set f(0) = 10, a = 0.5, and integrate from x = 0 to x = 10.
-        """
-
-        # set the constants required to evaluate this method
-        differential_coeff = 0.5
-        initial_value = 10.0
-
-        x_arr, y_arr = NumericalIntegration(technique="heuns_method").execute(
-            f_class=ValidFClass(a=differential_coeff),
-            x_range=[0.0, 10.0],
-            step_value=0.001,
-            y_initial=[initial_value],
-            silent=True
-        )
-        self.assertIsNotNone(x_arr)
-        self.assertIsNotNone(y_arr)
-
-        # set up the validated x and y arrays using the known value of the integrated solution
-        y_solution = initial_value * numpy.exp(-1.0 * differential_coeff * x_arr)
-
-        # iterate and find the maximal allowed error before encountering convergence failures
-        convergence_failures = False
-        maximal_error = 1.0
-        while not convergence_failures:
-            for i, y_calc in enumerate(y_arr[0]):
-                y_known = y_solution[i]
-                if abs(y_calc - y_known) >= maximal_error:
-                    convergence_failures = True
-                    break
-            if not convergence_failures:
-                maximal_error /= 10
-
-        print(
-            "Estimating the exact solution with Heun's Method using {} steps yielded no "
-            "convergence failures up to a maximal error of {}.".format(len(x_arr), maximal_error)
-        )
-
-    def test_runge_kutta2(self):
-        """
-        Unit test to test that 2nd-Order Runge-Kutta integrates and approximates an exponential function:
-            df/dx = -1.0 * a * f(x)
-        The above differential equation yields the following when integrated:
-            f(x) = f(0) * exp(-1.0 * a * x)
-        We will set f(0) = 10, a = 0.5, and integrate from x = 0 to x = 10.
+        Test to test that each integration method approximately solves an anharmonic oscillator:
+            d2x/dt2 = -1.0 * (w ** 2) * (x ** 3)
+        Note the above anharmonic oscillator does not have an analytical solution and cannot be
+        corroborated by an exact solution.
         """
 
         # set the constants required to evaluate this method
         differential_coeff = 0.5
         initial_value = 10.0
 
-        x_arr, y_arr = NumericalIntegration(technique="runge_kutta2").execute(
-            f_class=ValidFClass(a=differential_coeff),
-            x_range=[0.0, 10.0],
-            step_value=0.001,
-            y_initial=[initial_value],
-            silent=True
-        )
-        self.assertIsNotNone(x_arr)
-        self.assertIsNotNone(y_arr)
+        # acquire all the supported integration techniques
+        all_techniques = list(NumericalIntegration().supported_techniques.keys())
 
-        # set up the validated x and y arrays using the known value of the integrated solution
-        y_solution = initial_value * numpy.exp(-1.0 * differential_coeff * x_arr)
-
-        # iterate and find the maximal allowed error before encountering convergence failures
-        convergence_failures = False
-        maximal_error = 1.0
-        while not convergence_failures:
-            for i, y_calc in enumerate(y_arr[0]):
-                y_known = y_solution[i]
-                if abs(y_calc - y_known) >= maximal_error:
-                    convergence_failures = True
-                    break
-            if not convergence_failures:
-                maximal_error /= 10
-
-        print(
-            "Estimating the exact solution with 2nd-Order Runge-Kutta using {} steps yielded no "
-            "convergence failures up to a maximal error of {}.".format(len(x_arr), maximal_error)
-        )
-
-    def test_runge_kutta4(self):
-        """
-        Unit test to test that 4th-Order Runge-Kutta integrates and approximates an exponential function:
-            df/dx = -1.0 * a * f(x)
-        The above differential equation yields the following when integrated:
-            f(x) = f(0) * exp(-1.0 * a * x)
-        We will set f(0) = 10, a = 0.5, and integrate from x = 0 to x = 10.
-        """
-
-        # set the constants required to evaluate this method
-        differential_coeff = 0.5
-        initial_value = 10.0
-
-        x_arr, y_arr = NumericalIntegration(technique="runge_kutta4").execute(
-            f_class=ValidFClass(a=differential_coeff),
-            x_range=[0.0, 10.0],
-            step_value=0.001,
-            y_initial=[initial_value],
-            silent=True
-        )
-        self.assertIsNotNone(x_arr)
-        self.assertIsNotNone(y_arr)
-
-        # set up the validated x and y arrays using the known value of the integrated solution
-        y_solution = initial_value * numpy.exp(-1.0 * differential_coeff * x_arr)
-
-        # iterate and find the maximal allowed error before encountering convergence failures
-        convergence_failures = False
-        maximal_error = 1.0
-        while not convergence_failures:
-            for i, y_calc in enumerate(y_arr[0]):
-                y_known = y_solution[i]
-                if abs(y_calc - y_known) >= maximal_error:
-                    convergence_failures = True
-                    break
-            if not convergence_failures:
-                maximal_error /= 10
-
-        print(
-            "Estimating the exact solution with 4th-Order Runge-Kutta using {} steps yielded no "
-            "convergence failures up to a maximal error of {}.".format(len(x_arr), maximal_error)
-        )
-
-    def test_leapfrog_method(self):
-        """
-        Unit test to test that the Leapfrog Method integrates and approximates an exponential function:
-            df/dx = -1.0 * a * f(x)
-        The above differential equation yields the following when integrated:
-            f(x) = f(0) * exp(-1.0 * a * x)
-        We will set f(0) = 10, a = 0.5, and integrate from x = 0 to x = 10.
-        """
-
-        # set the constants required to evaluate this method
-        differential_coeff = 0.5
-        initial_value = 10.0
-
-        x_arr, y_arr = NumericalIntegration(technique="leapfrog_method").execute(
-            f_class=ValidFClass(a=differential_coeff),
-            x_range=[0.0, 10.0],
-            step_value=0.001,
-            y_initial=[initial_value],
-            silent=True
-        )
-        self.assertIsNotNone(x_arr)
-        self.assertIsNotNone(y_arr)
-
-        # set up the validated x and y arrays using the known value of the integrated solution
-        y_solution = initial_value * numpy.exp(-1.0 * differential_coeff * x_arr)
-
-        # iterate and find the maximal allowed error before encountering convergence failures
-        convergence_failures = False
-        maximal_error = 1.0
-        while not convergence_failures:
-            for i, y_calc in enumerate(y_arr[0]):
-                y_known = y_solution[i]
-                if abs(y_calc - y_known) >= maximal_error:
-                    convergence_failures = True
-                    break
-            if not convergence_failures:
-                maximal_error /= 10
-
-        print(
-            "Estimating the exact solution with the Leapfrog Method using {} steps yielded no "
-            "convergence failures up to a maximal error of {}.".format(len(x_arr), maximal_error)
-        )
-
-
-# NumericalIntegrationTestCase().test_validate_parameters()
-NumericalIntegrationTestCase().test_eulers_method()
-NumericalIntegrationTestCase().test_heuns_method()
-NumericalIntegrationTestCase().test_runge_kutta2()
-NumericalIntegrationTestCase().test_runge_kutta4()
-NumericalIntegrationTestCase().test_leapfrog_method()
+        # iterate through each integration technique testing each performs the intended integration
+        for integration_technique in all_techniques:
+            x_arr, y_arr = NumericalIntegration(technique=integration_technique).execute(
+                f_class=ValidExpFunc(a=differential_coeff),
+                x_range=[0.0, 10.0],
+                step_value=0.001,
+                y_initial=[initial_value],
+                silent=silent
+            )
+            self.assertIsNotNone(
+                x_arr,
+                msg="Independent values array is None as the integration could not be performed."
+            )
+            self.assertIsNotNone(
+                y_arr,
+                msg="Dependent values array is None as the integration could not be performed."
+            )
