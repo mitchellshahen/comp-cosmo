@@ -7,17 +7,17 @@ Module to define numerical integration techniques.
 
 :history: 02/05/2021
 
-For simplicity, in all numerical integration techniques, the independent variable will be represented
-by `x` and the dependent varaible will be represented by `y`. Additionally, the equation or function
-that is to be integrated must be represented by a class object and contain a method called `function`.
+For simplicity, in all integration techniques, the independent variable will be represented by `x`
+and the dependent varaible will be represented by `y`. Additionally, the equation or function that
+is to be integrated must be represented by a class object and contain a method called `function`.
 Moreover, `function` must accept variables of `x` and `y` and return an array containing a number of
-values. The inhomogeneous portion of the ODE must be calculated and available in the output array from
-the `function` method. For second order ODEs, two values must be present in the output array, the
-inhomogeneous portions of dy/dx and of dv/dx using dy/dx = v. It is this `function` that will be used
-to calculate the solution.
+values. The inhomogeneous portion of the ODE must be calculated and available in the output array
+from the `function` method. For second order ODEs, two values must be present in the output array,
+the inhomogeneous portions of dy/dx and of dv/dx using dy/dx = v. It is this `function` that will be
+used to calculate the solution.
 
-An example of a valid class object, compatible with the `execution` method, for solving a first order
-ODE is included below:
+An example of a valid class object, compatible with the `execution` method, for solving a first
+order ODE is included below:
 
 dy/dx = ((a ** 2) * x) + (b * y)
 
@@ -29,11 +29,11 @@ class Sample1:
 
     def function(self, x, y):
         soln = ((self.a ** 2) * x) + (b * y)
-        return numpy.array([soln])
+        return numpy.array(soln)
 ```
 
-An example of a valid class object, compatible with the `execution` method, for solving a second order
-ODE is included below:
+An example of a valid class object, compatible with the `execution` method, for solving a second
+order ODE is included below:
 
 d2y/dx2 = ((a + x) * dy/dx) - (b / y)
 
@@ -100,7 +100,7 @@ class NumericalIntegration:
         self.technique = technique
 
     @staticmethod
-    def eulers_method(function=None, x_range=[], step_value=0, y_initial=[]):
+    def eulers_method(function=None, x_range=None, step_value=0.0, y_initial=None):
         """
         Euler's method for solving initial value problems for numerical integration.
         In Euler's method, we employ a strategy similar to that of a Taylor series
@@ -133,7 +133,7 @@ class NumericalIntegration:
         return x_arr, y_arr
 
     @staticmethod
-    def heuns_method(function=None, x_range=[], step_value=0, y_initial=[]):
+    def heuns_method(function=None, x_range=None, step_value=0.0, y_initial=None):
         """
         Heun's method for numerical integration.
         """
@@ -172,7 +172,7 @@ class NumericalIntegration:
         return x_arr, y_arr
 
     @staticmethod
-    def runge_kutta2(function=None, x_range=[], step_value=0, y_initial=[]):
+    def runge_kutta2(function=None, x_range=None, step_value=0.0, y_initial=None):
         """
         2nd order Runge-Kutta method for numerical integration.
         """
@@ -210,7 +210,7 @@ class NumericalIntegration:
         return x_arr, y_arr
 
     @staticmethod
-    def runge_kutta4(function=None, x_range=[], step_value=0, y_initial=[]):
+    def runge_kutta4(function=None, x_range=None, step_value=0.0, y_initial=None):
         """
         4th order Runge-Kutta method for numerical integration.
         """
@@ -232,26 +232,26 @@ class NumericalIntegration:
             # write the buffer values to the dependent variable array
             y_arr[:, i] = y_buffer
 
-            # calculate the four necessary intermediate y_buffer value
-            y_intermediate1 = step_value * function(
+            # calculate the four necessary intermediate y_buffer values
+            y_inter1 = step_value * function(
                 x=x_value,
                 y=y_buffer
             )
-            y_intermediate2 = step_value * function(
+            y_inter2 = step_value * function(
                 x=x_value + 0.5 * step_value,
-                y=y_buffer + 0.5 * y_intermediate1
+                y=y_buffer + 0.5 * y_inter1
             )
-            y_intermediate3 = step_value * function(
+            y_inter3 = step_value * function(
                 x=x_value + 0.5 * step_value,
-                y=y_buffer + 0.5 * y_intermediate2
+                y=y_buffer + 0.5 * y_inter2
             )
-            y_intermediate4 = step_value * function(
+            y_inter4 = step_value * function(
                 x=x_value + step_value,
-                y=y_buffer + y_intermediate3
+                y=y_buffer + y_inter3
             )
 
             # calculate the intended next y value
-            y_next = (y_intermediate1 + 2 * y_intermediate2 + 2 * y_intermediate3 + y_intermediate4) / 6
+            y_next = (y_inter1 + 2 * y_inter2 + 2 * y_inter3 + y_inter4) / 6
 
             # write the results of the calculation(s) to the buffer array
             y_buffer += y_next
@@ -259,7 +259,7 @@ class NumericalIntegration:
         return x_arr, y_arr
 
     @staticmethod
-    def leapfrog_method(function=None, x_range=[], step_value=0, y_initial=[]):
+    def leapfrog_method(function=None, x_range=None, step_value=0.0, y_initial=None):
         """
         Method to calculate the leapfrog method for numerical integration.
         """
@@ -297,7 +297,7 @@ class NumericalIntegration:
 
         return x_arr, y_arr
 
-    def _validate_parameters(self, technique="", f_class=None, x_range=[], step_value=0, y_initial=[], silent=False):
+    def _validate(self, f_class=None, x_range=None, step_value=0.0, y_initial=None, silent=False):
         """
         Method to validate the inputted parameters intended to be executed.
         """
@@ -306,12 +306,12 @@ class NumericalIntegration:
         proceed = True
 
         # ensure the selected numerical integration technique is supported
-        if technique not in self.supported_techniques.keys():
+        if self.technique not in self.supported_techniques.keys():
             proceed = False
             if not silent:
                 print("ERROR: Selected numerical integration technique not found.")
 
-        # ensure that the f_class parameter is a class object and contains a method called "function"
+        # ensure the f_class parameter is a class object and contains a method called "function"
         if not all(
                 [
                     inspect.isclass(type(f_class)),
@@ -323,16 +323,19 @@ class NumericalIntegration:
                 print("ERROR: Invalid Function Class Provided.")
 
         # ensure that the x_range parameter is a list of two non-negative and increasing numbers
-        if not all(
+        if not isinstance(x_range, list):
+            proceed = False
+            if not silent:
+                print("ERROR: Inputted x_range parameter must be a list.")
+        elif not all(
                 [
-                    isinstance(x_range, list),
                     len(x_range) == 2,
                     all([isinstance(x_value, (int, float)) for x_value in x_range])
                 ]
         ):
             proceed = False
             if not silent:
-                print("ERROR: Inputted initial and final x value list is invalid/incompatible.")
+                print("ERROR: Inputted x_range list must contain two numbers.")
         elif not x_range[1] > x_range[0]:
             proceed = False
             if not silent:
@@ -343,15 +346,18 @@ class NumericalIntegration:
             proceed = False
             if not silent:
                 print("ERROR: Inputted step value must be a number.")
-        elif not step_value > 0:
+        elif step_value <= 0:
             proceed = False
             if not silent:
                 print("ERROR: Inputted step value cannot be negative.")
 
         # ensure that the y_initial is a list of at least one number
-        if not all(
+        if not isinstance(y_initial, list):
+            proceed = False
+            if not silent:
+                print("ERROR: Initial y values parameter must be a list.")
+        elif not all(
                 [
-                    isinstance(y_initial, list),
                     len(y_initial) > 0,
                     all([isinstance(initial_value, (int, float)) for initial_value in y_initial])
                 ]
@@ -362,14 +368,13 @@ class NumericalIntegration:
 
         return proceed
 
-    def execute(self, f_class=None, x_range=[], step_value=0, y_initial=[], silent=False):
+    def execute(self, f_class=None, x_range=None, step_value=0.0, y_initial=None, silent=False):
         """
         Method to execute a selected numerical integration technique
         """
 
         # ensure all the necessary parameters are valid
-        proceed = self._validate_parameters(
-            technique=self.technique,
+        proceed = self._validate(
             f_class=f_class,
             x_range=x_range,
             step_value=step_value,
@@ -386,11 +391,7 @@ class NumericalIntegration:
                 y_initial=y_initial
             )
         else:
-            if silent:
-                print(
-                    "A test validating the parameters inputted to the NumericalIntegration.execute function "
-                    "encountered an invalid or incompatible parameter and could not complete the integration."
-                )
+            print("Parameter Test Failure. Unable to Perform Integration.")
             x_arr = None
             y_arr = None
 
