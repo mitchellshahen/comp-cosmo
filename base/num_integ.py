@@ -85,6 +85,8 @@ class NumericalIntegration:
         """
         Constructor class method for the Numerical Integration class.
         Includes supported integration techniques/methods.
+
+        :param technique: A string indicating the type of integration that is to be performed.
         """
 
         # make all the supported techniques available
@@ -105,6 +107,15 @@ class NumericalIntegration:
         Euler's method for solving initial value problems for numerical integration.
         In Euler's method, we employ a strategy similar to that of a Taylor series
         expansion, but neglecting the higher order, O(h**2), terms.
+
+        :param function: A function that defines the differential equation that is to be solved.
+        :param x_range: A list of two numbers, the starting and ending independent variable values.
+        :param step_value: A floating point value representing the distance between consecutive
+            independent variable values.
+        :param y_initial: A list containing the initial value(s) of the dependent variable and its
+            derivatives.
+        :returns: A tuple of two numpy ndarrays, the independent variable array and the dependent
+            variable array, respectively.
         """
 
         # set up the number of steps set to occur
@@ -136,6 +147,15 @@ class NumericalIntegration:
     def heuns_method(function=None, x_range=None, step_value=0.0, y_initial=None):
         """
         Heun's method for numerical integration.
+
+        :param function: A function that defines the differential equation that is to be solved.
+        :param x_range: A list of two numbers, the starting and ending independent variable values.
+        :param step_value: A floating point value representing the distance between consecutive
+            independent variable values.
+        :param y_initial: A list containing the initial value(s) of the dependent variable and its
+            derivatives.
+        :returns: A tuple of two numpy ndarrays, the independent variable array and the dependent
+            variable array, respectively.
         """
 
         # set up the number of steps set to occur
@@ -175,6 +195,15 @@ class NumericalIntegration:
     def runge_kutta2(function=None, x_range=None, step_value=0.0, y_initial=None):
         """
         2nd order Runge-Kutta method for numerical integration.
+
+        :param function: A function that defines the differential equation that is to be solved.
+        :param x_range: A list of two numbers, the starting and ending independent variable values.
+        :param step_value: A floating point value representing the distance between consecutive
+            independent variable values.
+        :param y_initial: A list containing the initial value(s) of the dependent variable and its
+            derivatives.
+        :returns: A tuple of two numpy ndarrays, the independent variable array and the dependent
+            variable array, respectively.
         """
 
         # set up the number of steps set to occur
@@ -213,6 +242,15 @@ class NumericalIntegration:
     def runge_kutta4(function=None, x_range=None, step_value=0.0, y_initial=None):
         """
         4th order Runge-Kutta method for numerical integration.
+
+        :param function: A function that defines the differential equation that is to be solved.
+        :param x_range: A list of two numbers, the starting and ending independent variable values.
+        :param step_value: A floating point value representing the distance between consecutive
+            independent variable values.
+        :param y_initial: A list containing the initial value(s) of the dependent variable and its
+            derivatives.
+        :returns: A tuple of two numpy ndarrays, the independent variable array and the dependent
+            variable array, respectively.
         """
 
         # set up the number of steps set to occur
@@ -262,6 +300,15 @@ class NumericalIntegration:
     def leapfrog_method(function=None, x_range=None, step_value=0.0, y_initial=None):
         """
         Method to calculate the leapfrog method for numerical integration.
+
+        :param function: A function that defines the differential equation that is to be solved.
+        :param x_range: A list of two numbers, the starting and ending independent variable values.
+        :param step_value: A floating point value representing the distance between consecutive
+            independent variable values.
+        :param y_initial: A list containing the initial value(s) of the dependent variable and its
+            derivatives.
+        :returns: A tuple of two numpy ndarrays, the independent variable array and the dependent
+            variable array, respectively.
         """
 
         # set up the number of steps set to occur
@@ -282,7 +329,7 @@ class NumericalIntegration:
             y=y_buffer + (step_value * function(x=x_range[0], y=y_buffer) / 4)
         )
 
-        # perform the RK4 integration
+        # perform the leapfrog integration
         for i, x_value in enumerate(x_arr):
             # write the buffer values to the dependent variable array
             y_arr[:, i] = y_buffer
@@ -300,6 +347,16 @@ class NumericalIntegration:
     def _validate(self, f_class=None, x_range=None, step_value=0.0, y_initial=None, silent=False):
         """
         Method to validate the inputted parameters intended to be executed.
+
+        :param f_class: A class object that defines the differential equation that is to be solved.
+        :param x_range: A list of two numbers, the starting and ending independent variable values.
+        :param step_value: A floating point value representing the distance between consecutive
+            independent variable values.
+        :param y_initial: A list containing the initial value(s) of the dependent variable and its
+            derivatives.
+        :param silent: A boolean indicating if statements of possible errors are not to be printed.
+        :returns: A boolean indicating if numerical integration can proceed using the
+            inputted parameters.
         """
 
         # set up a variable to determine if the numerical integration can or cannot proceed
@@ -370,7 +427,17 @@ class NumericalIntegration:
 
     def execute(self, f_class=None, x_range=None, step_value=0.0, y_initial=None, silent=False):
         """
-        Method to execute a selected numerical integration technique
+        Method to execute a selected numerical integration technique.
+
+        :param f_class: A class object that defines the differential equation that is to be solved.
+        :param x_range: A list of two numbers, the starting and ending independent variable values.
+        :param step_value: A floating point value representing the distance between consecutive
+            independent variable values.
+        :param y_initial: A list containing the initial value(s) of the dependent variable and its
+            derivatives.
+        :param silent: A boolean indicating if statements of possible errors are not to be printed.
+        :returns: A tuple of two numpy ndarrays if the integration is performed or a tuple of None
+            types if at least one integration parameter is invalid or incompatible.
         """
 
         # ensure all the necessary parameters are valid
