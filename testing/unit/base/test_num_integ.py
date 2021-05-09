@@ -17,7 +17,8 @@ sys.path.append("../../../")
 
 from base.num_integ import NumericalIntegration
 
-# ---------- # VALID NUMERICALINTEGRATION CLASS FUNCTIONS # ---------- #
+
+# ---------- # VALID NUMERICAL INTEGRATION CLASS FUNCTIONS # ---------- #
 
 
 class ValidExpFunc:
@@ -33,10 +34,10 @@ class ValidHarmOscill:
         self.w = w
 
     def function(self, x, y):
-        return numpy.array([y[1], -1 * (self.w ** 2) * (y[0] ** 3)])
+        return numpy.array([y[1], -1 * (self.w ** 2) * y[0]])
 
 
-# ---------- # VALID NUMERICALINTEGRATION CLASS FUNCTIONS # ---------- #
+# ---------- # VALID NUMERICAL INTEGRATION CLASS FUNCTIONS # ---------- #
 
 
 class InvalidFunc:
@@ -159,7 +160,7 @@ class NumericalIntegrationTestCase(unittest.TestCase):
 
         # set the constants required to evaluate this method
         differential_coeff = 0.5
-        initial_value = 10.0
+        initial_value = [10.0]
 
         # acquire all the supported integration techniques
         all_techniques = list(NumericalIntegration().supported_techniques.keys())
@@ -224,15 +225,18 @@ class NumericalIntegrationTestCase(unittest.TestCase):
 
     def test_integration_harm_oscill(self, silent=True):
         """
-        Test to test that each integration method approximately solves an anharmonic oscillator:
-            d2x/dt2 = -1.0 * (w ** 2) * (x ** 3)
-        Note the above anharmonic oscillator does not have an analytical solution and cannot be
-        corroborated by an exact solution.
+        Test to test that each integration method approximately solves a simple harmonic oscillator:
+            d2y/dx2 = -1.0 * (w ** 2) * y
+        The above harmonic oscillator yields the following form when integrated:
+            y(x) = y(0) * cos(w * x) + dy(0)/dx * sin(w * x) / w
+        We will set y(0) = 2, dy(0)/dx = 1.0, w = 2.0, and integrate from x = 0 to x = 10.
         """
 
         # set the constants required to evaluate this method
-        differential_coeff = 0.5
-        initial_value = 10.0
+        w = 2.0
+        initial_y = 2.0
+        initial_dy_dx = 0.0
+        x_range = [0.0, 10.0]
 
         # acquire all the supported integration techniques
         all_techniques = list(NumericalIntegration().supported_techniques.keys())
@@ -240,10 +244,10 @@ class NumericalIntegrationTestCase(unittest.TestCase):
         # iterate through each integration technique testing each performs the intended integration
         for integration_technique in all_techniques:
             x_arr, y_arr = NumericalIntegration(technique=integration_technique).execute(
-                f_class=ValidExpFunc(a=differential_coeff),
-                x_range=[0.0, 10.0],
-                step_value=0.001,
-                y_initial=[initial_value],
+                f_class=ValidHarmOscill(w=w),
+                x_range=x_range,
+                step_value=0.0001,
+                y_initial=[initial_y, initial_dy_dx],
                 silent=silent
             )
             self.assertIsNotNone(
@@ -254,3 +258,46 @@ class NumericalIntegrationTestCase(unittest.TestCase):
                 y_arr,
                 msg="Dependent values array is None as the integration could not be performed."
             )
+
+            # set up the validated x and y arrays using the known value of the integrated solution
+            y_solution = initial_y * numpy.cos(w * x_arr) + initial_dy_dx * numpy.sin(w * x_arr) / w
+
+            # set up variables to track convergence failures and the allowed error
+            convergence_failures = False
+            maximal_error = 1.0
+
+            # iterate and find the maximal allowed error before encountering convergence failures
+            while not convergence_failures:
+                for i, __ in enumerate(x_arr):
+                    # obtain the calculated value at the current x_value
+                    y_calc = y_arr[0][i]
+
+                    # obtain the exact value at the current x_value
+                    y_known = y_solution[i]
+
+                    # calculate the relative y_value to be compared with a value of 1
+                    # Note: A relative y value of 1 indicates perfect convergence
+                    relative_y = y_calc / y_known
+
+                    # compare the relative y_value to perfect convergence
+                    if abs(relative_y - 1) >= maximal_error:
+                        convergence_failures = True
+                        break
+
+                # if not convergence failures are found, increase the precision
+                if not convergence_failures:
+                    maximal_error /= 10
+
+            if not silent:
+                # print a message including the maximal error for each integration technique
+                print(
+                    "Estimating the exact solution with {} using {} steps yielded no "
+                    "convergence failures up to a maximal error of {}.".format(
+                        integration_technique,
+                        len(x_arr),
+                        maximal_error
+                    )
+                )
+
+
+NumericalIntegrationTestCase().test_integration_harm_oscill(silent=False)
