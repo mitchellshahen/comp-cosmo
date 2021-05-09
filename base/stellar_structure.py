@@ -42,7 +42,7 @@ class StellarStructure:
 
     def initial_properties(self, rho_0=0.0, T_0=0.0, r_0=0.0):
         """
-        Method to define the initial values used in solving the stellar structure differential equations.
+        Method to define the initial values used to solve the stellar structure equations.
         """
 
         # set the mass contained within a sphere of very small radius
@@ -109,13 +109,16 @@ class StellarStructure:
         rho_3 = rho / (10 ** 3)
 
         # calculate the mean opacity from electron scattering
-        kappa_es = (0.02 * (units.m ** 2 / units.kg)) * (1 + self.X)
+        kappa_es_coeff = 0.02 * (units.m ** 2 / units.kg)
+        kappa_es = kappa_es_coeff * (1 + self.X)
 
         # calculate the mean opacity from free-free scattering
-        kappa_ff = (1.0e24 * (units.m ** 2 / units.kg)) * (self.Z + 0.0001) * (rho_3 ** 0.7) * (T ** (-7/2))
+        kappa_ff_coeff = 1.0e24 * (units.m ** 2 / units.kg)
+        kappa_ff = kappa_ff_coeff * (self.Z + 0.0001) * (rho_3 ** 0.7) * (T ** (-7/2))
 
         # calculate the mean opacity from H-minus scattering
-        kappa_hm = (2.5e-32 * (units.m ** 2 / units.kg)) * (self.Z / 0.02) * (rho_3 ** 0.5) * (T ** 9)
+        kappa_hm_coeff = 2.5e-32 * (units.m ** 2 / units.kg)
+        kappa_hm = kappa_hm_coeff * (self.Z / 0.02) * (rho_3 ** 0.5) * (T ** 9)
 
         # calculate the total mean opacity
         kappa_total = ((1 / kappa_hm) + (1 / max(kappa_es, kappa_ff))) ** -1
@@ -126,7 +129,8 @@ class StellarStructure:
 
     def total_pressure(self, rho, T):
         """
-        Method to calculate the pressure of eah equation of state using a given density and temperature.
+        Method to calculate the pressure of each relevant equation of state using a given density
+        and temperature.
         """
 
         # calculate the non-relativistic degeneracy pressure
@@ -171,7 +175,9 @@ class StellarStructure:
         opacity = self.mean_opacity(rho=rho, T=T)
 
         # calculate the radiative temperature
-        T_radiative = 3 * opacity * rho * L / (16 * numpy.pi * constants.a * constants.c * (T ** 3) * (r ** 2))
+        T_radiative = 3 * opacity * rho * L / (
+            16 * numpy.pi * constants.a * constants.c * (T ** 3) * (r ** 2)
+        )
 
         return T_radiative
 
@@ -181,9 +187,10 @@ class StellarStructure:
         """
         Method to define the hydrostatic equilibrium differential equation:
             drho/dr = - ((G * M * rho / r**2) + (dP/dT * dT/dr)) / (dP / drho)
-        Note: The pressure-density and pressure-temperature differentials are calculated by differentiating
-            the total pressure equation included in the `total_pressure` docstring as the sum of the
-            non-relativistic degenerate pressure, the ideal gas pressure, and the photon gas pressure.
+        Note: The pressure-density and pressure-temperature differentials are calculated by
+            differentiating the total pressure equation included in the `total_pressure` docstring
+            as the sum of the non-relativistic degenerate pressure, the ideal gas pressure, and
+            the photon gas pressure.
         """
 
         # calculate the pressure-temperature differential
@@ -255,8 +262,11 @@ class StellarStructure:
             dL/dr = 4 * pi * r**2 * rho * epsilon
         """
 
+        # obtain the energy generation rate necessary for defining the stellar luminosity
+        energy_gen = self.energy_gen_rate(rho=rho, T=T, X_cno=None)
+
         # calculate the luminosity gradient
-        lumin_gradient = 4 * numpy.pi * rho * self.energy_gen_rate(rho=rho, T=T, X_cno=None) * (r ** 2)
+        lumin_gradient = 4 * numpy.pi * rho * energy_gen * (r ** 2)
 
         return lumin_gradient
 
