@@ -17,7 +17,7 @@ class Plotting:
     Class object for plotting inputted data.
     """
 
-    def __init__(self, plot_type=""):
+    def __init__(self, plot_type="line"):
         """
         Constructor class object for the Plotting class
         """
