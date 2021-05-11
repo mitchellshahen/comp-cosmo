@@ -108,15 +108,22 @@ class Store:
         increment = 0
         basename = os.path.splitext(filepath.split("\\")[-1])[0]
         while os.path.exists(filepath):
-            filepath = filepath.replace(
-                os.path.splitext(filepath.split("\\")[-1])[0],
-                "{}_{}".format(basename, increment)
+            # in the event of an overwrite, ask if the data file should be overwritten
+            print(
+                "The intended data file, {}, already exists "
+                "in the selected directory.".format(basename)
             )
-            increment += 1
+            overwrite = input("Overwrite? [Y], N >>> ").lower() in ["y", "yes", ""]
+
+            if not overwrite:
+                filepath = filepath.replace(
+                    os.path.splitext(filepath.split("\\")[-1])[0],
+                    "{}_{}".format(basename, increment)
+                )
+                increment += 1
+            else:
+                break
 
         # open the intended data file and save the data
         with open(filepath, 'wb') as open_file:
             pickle.dump(data, open_file, protocol=pickle.HIGHEST_PROTOCOL)
-
-
-Store().admin(verbose=True)
