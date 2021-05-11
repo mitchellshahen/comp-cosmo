@@ -10,6 +10,8 @@ File to set up all necessary universal constants.
 
 import units
 
+# ---------- # UNIVERSAL CONSTANTS # ---------- #
+
 # gravitational constant (in metres cubed per kilogram per second squared
 G = 6.6743e-11 * (units.m ** 3 / (units.kg * units.s ** 2))
 
@@ -43,8 +45,13 @@ m_p = 1.6726219e-27 * (units.kg)
 # electron mass (in kilograms)
 m_e = 9.10938356e-31 * (units.kg)
 
-# stellar mass (in kilograms)
+# ---------- # SOLAR PROPERTIES # ---------- #
+
+# solar luminosity (in Watts)
+L_sun = 3.846e26 * (units.W)
+
+# solar mass (in kilograms)
 M_sun = 1.98847e30 * (units.kg)
 
-# stellar radius (in metres)
+# solar radius (in metres)
 r_sun = 6.96342e8 * (units.m)
