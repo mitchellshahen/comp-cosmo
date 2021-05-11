@@ -3,7 +3,7 @@ Module to solve the stellar equations by means of a trial solution, testing the 
 modifying the initial parameters to improve the next trial solution attempt.
 """
 
-from constants import L_sun, M_sun, r_sun, sigma
+from constants import L_sun, M_sun, r_sun, rho_0_sun, sigma, T_0_sun
 import numpy
 from scipy import integrate
 from stellar_structure import StellarStructure, rho_index, T_index, M_index, L_index, tau_index
@@ -186,48 +186,14 @@ def trial_solution(
     return luminosity_error, trunc_r, trunc_state
 
 
-def solve_structure(
-        T_0,
-        rho_0_guess=1e5 * (units.kg / (units.m ** 3)),
-        confidence=0.9,
-        rho_0_min=300 * (units.kg / (units.m ** 3)),
-        rho_0_max=4e9 * (units.kg / (units.m ** 3)),
-        rho_0_tol=1e-20 * (units.kg / (units.m ** 3)),
-        rtol=1e-11,
-        optical_depth_threshold=1e-4,
-        normalize=False
+def bisection_method(
+        T_0, rho_0_guess, confidence, rho_0_min, rho_0_max, rho_0_tol, rtol, optical_depth_threshold
 ):
     """
-    Solves the stellar structure equations in `stellar_structure.py` using the inputted central
-    temperature, `T_0`, by means of the point-and-shoot method. Also employed is the bisection
-    algorithm modified with the notion of confidence. A higher confidence results in a faster
-    convergence for the central density guess, `rho_0_guess`. Once rho_0_guess falls outside the
-    interval of interest, simple bisection is used. Too low of a confidence will cause this to
-    reduce to simple bisection, and too high of a confidence will likely cause rho_0_guess to fall
-    outside the range of interest too fast leaving an unnecessarily large remaining search space.
-
-    :param T_0: The central temperature.
-    :param rho_0_guess: A guess for the central density.
-    :param confidence: The confidence of the guess. This parameter must be strictly between 0.5 (no
-        confidence) and 1 (complete confidence).
-    :param rho_0_min: The minimum possible central density.
-    :param rho_0_max: The maximum possible central density.
-    :param rho_0_tol: The tolerance within which the central density must be determined for
-        integration to be concluded.
-    :param rtol: The required relative accuracy during integration.
-    :param optical_depth_threshold: The remaining optical depth values at which the integration is
-        allowed to stop.
-    :param normalize: Boolean indicating if the output data is normalized with solar properties
-        before being outputted.
-    :return: The resulting fractional luminosity error, r_values, and state_values of the resulting
-        stellar structure solution.
+    Method to execute the bisection method with the notion of a confidence value.
+    :return: A tuple of the optimal central density value to use in evaluating the final stellar
+        structure solution and the final luminosity error to check for sufficient convergence.
     """
-
-    # ensure the confidence parameter is properly specified
-    if confidence < 0.5:
-        raise IOError("Confidence must be at least 0.5!")
-    if confidence >= 1:
-        raise IOError("Confidence must be less than 1!")
 
     # calculate the luminosity error associated with the central density guess
     L_error_guess, __, __ = trial_solution(
@@ -237,8 +203,8 @@ def solve_structure(
         rtol=rtol
     )
 
-    # if using the input central density guess resulted in no
-    # luminosity error, return the density guess
+    # if using the input central density guess resulted in no luminosity error, return the
+    # luminosity error, radius values, and state values from using the density guess
     if L_error_guess == 0:
         return rho_0_guess
 
@@ -250,8 +216,8 @@ def solve_structure(
         rtol=rtol
     )
 
-    # if using the minimum central density guess resulted in no
-    # luminosity error, return the minimum central density
+    # if using the minimum central density resulted in no luminosity error, return the
+    # luminosity error, radius values, and state values from using the minimum density
     if L_error_min == 0:
         return rho_0_min
 
@@ -277,8 +243,8 @@ def solve_structure(
             rtol=rtol
         )
 
-        # if using the maximum central density guess resulted in no
-        # luminosity error, return the maximum central density
+        # if using the maximum central density resulted in no luminosity error, return the
+        # luminosity error, radius values, and state values from using the maximum density
         if L_error_max == 0:
             return rho_0_max
 
@@ -334,12 +300,13 @@ def solve_structure(
                 rtol=rtol
             )
 
-            # check the luminosity error of the new central density guess
+            # check the luminosity error of the new central density guess and assign the
+            # upper and lower densities accordingly
             if L_error_guess == 0:
                 return rho_0_guess
             if L_error_guess < 0:
                 rho_0_low = rho_0_guess
-                bias_low = False # ignore initial guess bias since it is no longer the low endpoint
+                bias_low = False  # ignore initial guess bias since it is no longer the low endpoint
             elif L_error_guess > 0:
                 rho_0_high = rho_0_guess
 
@@ -362,7 +329,8 @@ def solve_structure(
                 rtol=rtol
             )
 
-            # check the luminosity error of the new central density guess
+            # check the luminosity error of the new central density guess and assign the
+            # upper and lower densities accordingly
             if L_error_guess == 0:
                 return rho_0_guess
             if L_error_guess < 0:
@@ -390,7 +358,8 @@ def solve_structure(
                 rtol=rtol
             )
 
-            # check the luminosity error of the new central density guess
+            # check the luminosity error of the new central density guess and assign the
+            # upper and lower densities accordingly
             if L_error_guess == 0:
                 return rho_0_guess
             if L_error_guess < 0:
@@ -398,8 +367,58 @@ def solve_structure(
             elif L_error_guess > 0:
                 rho_0_high = rho_0_guess
 
-    # assign the final central density as the midpoint between the upper and lower density bounds
-    rho_0 = (rho_0_high + rho_0_low) / 2
+    # if no ideal error was obtained, output the midpoint between the upper and lower density bounds
+    output_rho_0 = (rho_0_low + rho_0_high) / 2
+
+    return output_rho_0, L_error_guess
+
+
+def solve_structure(
+        T_0,
+        rho_0_guess=1e5 * (units.kg / (units.m ** 3)),
+        confidence=0.9,
+        rho_0_min=300 * (units.kg / (units.m ** 3)),
+        rho_0_max=4e9 * (units.kg / (units.m ** 3)),
+        rho_0_tol=1e-20 * (units.kg / (units.m ** 3)),
+        rtol=1e-11,
+        optical_depth_threshold=1e-4,
+        normalize=False
+):
+    """
+    Solves the stellar structure equations in `stellar_structure.py` using the inputted central
+    temperature, `T_0`, by means of the point-and-shoot method. Also employed is the bisection
+    algorithm modified with the notion of confidence. A higher confidence results in a faster
+    convergence for the central density guess, `rho_0_guess`. Once rho_0_guess falls outside the
+    interval of interest, simple bisection is used. Too low of a confidence will cause this to
+    reduce to simple bisection, and too high of a confidence will likely cause rho_0_guess to fall
+    outside the range of interest too fast leaving an unnecessarily large remaining search space.
+
+    :param T_0: The central temperature.
+    :param rho_0_guess: A guess for the central density.
+    :param confidence: The confidence of the guess. This parameter must be strictly between 0.5 (no
+        confidence) and 1 (complete confidence).
+    :param rho_0_min: The minimum possible central density.
+    :param rho_0_max: The maximum possible central density.
+    :param rho_0_tol: The tolerance within which the central density must be determined for
+        integration to be concluded.
+    :param rtol: The required relative accuracy during integration.
+    :param optical_depth_threshold: The remaining optical depth values at which the integration is
+        allowed to stop.
+    :param normalize: Boolean indicating if the output data is normalized with solar properties
+        before being outputted.
+    :return: The resulting fractional luminosity error, r_values, and state_values of the resulting
+        stellar structure solution.
+    """
+
+    # ensure the confidence parameter is properly specified
+    if confidence < 0.5:
+        raise IOError("Confidence must be at least 0.5!")
+    if confidence >= 1:
+        raise IOError("Confidence must be less than 1!")
+
+    rho_0, L_error_guess = bisection_method(
+        T_0, rho_0_guess, confidence, rho_0_min, rho_0_max, rho_0_tol, rtol, optical_depth_threshold
+    )
 
     # if solution failed to converge, recurse with greater accuracy
     if numpy.abs(L_error_guess) > 1000:
@@ -418,7 +437,7 @@ def solve_structure(
             optical_depth_threshold=optical_depth_threshold
         )
 
-    # Generate the final stellar structure solution
+    # using the final central density value, generate the final stellar structure solution
     final_error, final_r, final_state = trial_solution(
         rho_0=rho_0,
         T_0=T_0,
@@ -432,7 +451,13 @@ def solve_structure(
             final_r,
             final_state,
             radius_norm=r_sun,
-            state_norm=[rho_0, T_0, M_sun, L_sun, 1.0] # optical depth has no common normalization
+            state_norm=[
+                rho_0_sun, # normalize with the Sun's central density
+                T_0_sun, # normalize with the Sun's central temperature
+                M_sun, # normalize with the Sun's cumulative mass
+                L_sun, # normalize with the Sun's cumulative luminosity
+                1.0 # optical depth has no common normalization
+            ]
         )
 
     return final_error, final_r, final_state
