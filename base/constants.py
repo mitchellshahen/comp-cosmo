@@ -55,3 +55,9 @@ M_sun = 1.98847e30 * (units.kg)
 
 # solar radius (in metres)
 r_sun = 6.96342e8 * (units.m)
+
+# solar central density (in kg per cubic metre)
+rho_0_sun = 1.60e5 * (units.kg / (units.m ** 3))
+
+# solar central temperature
+T_0_sun = 1.5e7 * (units.K)
