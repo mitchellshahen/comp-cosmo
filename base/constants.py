@@ -8,7 +8,6 @@ File to set up all necessary universal constants.
 :history: 01/05/2021
 """
 
-# import the units to properly define the constants
 import units
 
 # gravitational constant (in metres cubed per kilogram per second squared
@@ -38,8 +37,14 @@ a = 7.5657e-16 * (units.J / (units.m ** 3 * units.K ** 4))
 # adiabatic index for an ideal gas (unitless)
 gamma = 5 / 3
 
-# proton mass
+# proton mass (in kilograms)
 m_p = 1.6726219e-27 * (units.kg)
 
-# electron mass
+# electron mass (in kilograms)
 m_e = 9.10938356e-31 * (units.kg)
+
+# stellar mass (in kilograms)
+M_sun = 1.98847e30 * (units.kg)
+
+# stellar radius (in metres)
+r_sun = 6.96342e8 * (units.m)
