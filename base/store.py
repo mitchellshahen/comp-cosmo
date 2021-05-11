@@ -11,6 +11,7 @@ Module to define methods for storing, generating, converting, and acquiring stor
 import os
 import pickle
 
+# path of the default data store
 default_data_dir = os.path.join(
     __file__.replace(
         "\\" + __file__.split("\\")[-2],
@@ -25,7 +26,7 @@ default_data_dir = os.path.join(
 
 class Store:
     """
-    Class object defining methods used in the acquisition, storage, and maintenance of available data.
+    Class object defining methods used in data acquisition, storage, and maintenance.
     """
 
     def __init__(self, data_directory=default_data_dir):
@@ -35,31 +36,7 @@ class Store:
 
         self.data_directory = data_directory
 
-    def acquire(self, data_filename=""):
-        """
-        Method for acquiring data
-        """
-
-        # construct the full filepath
-        filepath = os.path.join(self.data_directory, data_filename)
-
-        # ensure the intended data file exists and is a pickle file
-        if not all(
-                [
-                    os.path.exists(filepath),
-                    os.path.isfile(filepath),
-                    filepath.split(".")[-1] == "pickle"
-                ]
-        ):
-            raise IOError("Intended data file is not found or is incompatible.")
-
-        # open the intended file and extract the data
-        with open(filepath, 'rb') as open_file:
-            data = pickle.load(open_file)
-
-        return data
-
-    def info(self, verbose=False):
+    def admin(self, verbose=False):
         """
         Method to print useful information about the data store.
         """
@@ -91,6 +68,30 @@ class Store:
             for i, name in enumerate(data_names):
                 print("    {}: {} bytes".format(name, data_sizes[i]))
 
+    def get(self, data_filename=""):
+        """
+        Method for acquiring data
+        """
+
+        # construct the full filepath
+        filepath = os.path.join(self.data_directory, data_filename)
+
+        # ensure the intended data file exists and is a pickle file
+        if not all(
+                [
+                    os.path.exists(filepath),
+                    os.path.isfile(filepath),
+                    filepath.split(".")[-1] == "pickle"
+                ]
+        ):
+            raise IOError("Intended data file is not found or is incompatible.")
+
+        # open the intended file and extract the data
+        with open(filepath, 'rb') as open_file:
+            data = pickle.load(open_file)
+
+        return data
+
     def save(self, data=None, data_filename=""):
         """
         Method for saving data locally
@@ -118,4 +119,4 @@ class Store:
             pickle.dump(data, open_file, protocol=pickle.HIGHEST_PROTOCOL)
 
 
-Store().info(verbose=True)
+Store().admin(verbose=True)
