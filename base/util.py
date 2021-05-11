@@ -6,7 +6,7 @@ import numpy
 from scipy.interpolate import interp1d
 
 
-def find_zeros(in_data=None):
+def find_zeros(in_data=None, find_first=True):
     """
     Function to interpolate and find the values in an input dataset where the data flips from
     positive to negative or vice versa.
@@ -36,9 +36,13 @@ def find_zeros(in_data=None):
         all_zero_indices.append(zero_index)
 
     # convert the list of zero indices to an array
-    all_zeros = numpy.array(all_zero_indices)
+    out_zeros = numpy.array(all_zero_indices)
 
-    return all_zeros
+    # if find first is True, cut the zeros array to just the first value
+    if find_first:
+        out_zeros = out_zeros[0]
+
+    return out_zeros
 
 
 def interpolate(in_data=None, index=0.0):
@@ -58,7 +62,11 @@ def interpolate(in_data=None, index=0.0):
     # if the input dataset is a matrix, use interp1d to interpolate the data
     # point along the second axis
     else:
-        index_arr = numpy.arange(in_data.shape[1])
-        interp_data = interp1d(index_arr, in_data)(index)
+        all_interp = []
+        for arr in in_data:
+            index_arr = numpy.arange(len(arr))
+            intermed_interp = numpy.interp(index, index_arr, arr)[0]
+            all_interp.append(intermed_interp)
+        interp_data = numpy.array(all_interp)
 
     return interp_data
