@@ -3,12 +3,35 @@ Module to solve the stellar equations by means of a trial solution, testing the 
 modifying the initial parameters to improve the next trial solution attempt.
 """
 
-from constants import M_sun, sigma
+from constants import L_sun, M_sun, r_sun, sigma
 import numpy
 from scipy import integrate
-from stellar_structure import StellarStructure, T_index, M_index, L_index, tau_index
+from stellar_structure import StellarStructure, rho_index, T_index, M_index, L_index, tau_index
 import units
 from util import find_zeros, interpolate
+
+
+def normalize_data(r, state, radius_norm=0, state_norm=None):
+    """
+    Function to normalize the radius values and stellar state values.
+
+    :param r: A numpy ndarray of radius values.
+    :param state: A multi-dimensional matrix of stellar values including density, temperature,
+        mass, luminosity, and optical depth.
+    :param radius_norm: A value to normalize the radius values.
+    :param state_norm: A list of values normalizing each of the state values. Must match the size
+        and order of the `state` parameter.
+    :return: A tuple containing two numpy ndarrays: the normalized radii and the normalized states.
+    """
+
+    # scale the 1-D radius values by the inputted radius norm
+    r = numpy.array([item / radius_norm for item in r])
+
+    # scale the multi-dimensional state by each inputted state norm value
+    for i, state_arr in enumerate(state):
+        state[i] = numpy.array([item / state_norm[i] for item in state_arr])
+
+    return r, state
 
 
 def get_remaining_optical_depth(r, state):
@@ -18,10 +41,17 @@ def get_remaining_optical_depth(r, state):
 
     For R >> 1 and R >> r:
         tau(R) - tau(r) ~= kappa * (rho ** 2) / abs(drho/dr)
+
+    :param r: A radius value at which the remaining optical depth is to be calculated
+    :param state: An array containing the state values evaluated at the radius, `r`
+    :returns: The remaining optical depth value at the radius, `r`
     """
 
     # extract the necessary values from the inputted state variable
-    rho, T, M, L, tau = state
+    rho = state[rho_index]
+    T = state[T_index]
+    M = state[M_index]
+    L = state[L_index]
 
     # calculate the mean opacity at the current density and temperature
     kappa = StellarStructure().mean_opacity(rho=rho, T=T)
@@ -30,7 +60,7 @@ def get_remaining_optical_depth(r, state):
     drho_dr = StellarStructure().hydrostat_equil(r=r, rho=rho, T=T, M=M, L=L)
 
     # calculate the remaining optical depth from the current radius to infinity
-    remain_opt_depth = kappa * (rho ** 2) / abs(drho_dr)
+    remain_opt_depth = kappa * (rho ** 2) / numpy.abs(drho_dr)
 
     return remain_opt_depth
 
@@ -45,7 +75,11 @@ def test_luminosity(r, state):
     The expected surface luminosity is calculated as:
         L_surf = 4 * pi * sigma * (r ** 2) * (T ** 4)
 
-    :return:
+    :param r: An array of radius values from a non-zero minimum radius to (effectively) infinity
+    :param state: A matrix of state values evaluated at the various radii in `r`
+    :return: A tuple containing the luminosity error at the interpolated surface radius, an array of
+        radius values truncated to the surface radius value, and a matrix of state values evaluated
+        at each radius.
     """
 
     # get the optical depth at a very large radius (effectively infinity)
@@ -55,7 +89,7 @@ def test_luminosity(r, state):
     surf_rad_eq = tau_inf - state[tau_index, :] - (2 / 3)
 
     # find the exact index where the above equation equates to 0 (likely a floating point)
-    surface_index = find_zeros(in_data=surf_rad_eq)
+    surface_index = find_zeros(in_data=surf_rad_eq, find_first=True)
 
     # interpolate the radius array to find the radius value at the surface index
     surface_radius = interpolate(in_data=r, index=surface_index)
@@ -85,11 +119,15 @@ def test_luminosity(r, state):
     # limit the surface index to its next lowest integer
     surface_index = int(surface_index)
 
-    # cut the radius array and state values to just before the surface and add the surface data
-    r = numpy.append(r[:surface_index], surface_radius)
-    state = numpy.column_stack((state[:, :surface_index], surface_state))
+    # cut the radius array and state matrix to just prior to the surface index
+    cut_r = r[:surface_index]
+    cut_state = state[:, :surface_index]
 
-    return luminosity_error, r, state
+    # add the surface data to the truncated radius array and state matrix
+    trunc_r = numpy.append(cut_r, surface_radius)
+    trunc_state = numpy.column_stack((cut_state, surface_state))
+
+    return luminosity_error, trunc_r, trunc_state
 
 
 def trial_solution(
@@ -142,7 +180,10 @@ def trial_solution(
     # noinspection PyUnresolvedReferences
     r_values, state_values = result.t, result.y
 
-    return test_luminosity(r=r_values, state=state_values)
+    # acquire the luminosity error as well as the truncated radius array and state matrix
+    luminosity_error, trunc_r, trunc_state = test_luminosity(r=r_values, state=state_values)
+
+    return luminosity_error, trunc_r, trunc_state
 
 
 def solve_structure(
@@ -153,7 +194,8 @@ def solve_structure(
         rho_0_max=4e9 * (units.kg / (units.m ** 3)),
         rho_0_tol=1e-20 * (units.kg / (units.m ** 3)),
         rtol=1e-11,
-        optical_depth_threshold=1e-4
+        optical_depth_threshold=1e-4,
+        normalize=False
 ):
     """
     Solves the stellar structure equations in `stellar_structure.py` using the inputted central
@@ -175,10 +217,13 @@ def solve_structure(
     :param rtol: The required relative accuracy during integration.
     :param optical_depth_threshold: The remaining optical depth values at which the integration is
         allowed to stop.
+    :param normalize: Boolean indicating if the output data is normalized with solar properties
+        before being outputted.
     :return: The resulting fractional luminosity error, r_values, and state_values of the resulting
         stellar structure solution.
     """
 
+    # ensure the confidence parameter is properly specified
     if confidence < 0.5:
         raise IOError("Confidence must be at least 0.5!")
     if confidence >= 1:
@@ -270,15 +315,15 @@ def solve_structure(
 
     # continue to increase the precision until the central density tolerance is met
     while numpy.abs(rho_0_high - rho_0_low) / 2 > rho_0_tol:
-        # if the bias is favouring the lower bound, scale the central density guess using the
-        # confidence assigned to the lower density bound
+        # if the bias is favouring the lower bound, assign the central density guess using the upper
+        # and lower density bounds with the confidence assigned to the lower density bound
         if bias_low:
             # assign the confidence to the lower density bound
             rho_0_guess = confidence * rho_0_low + (1 - confidence) * rho_0_high
 
             # check for numerical precision
             if rho_0_guess == rho_0_low or rho_0_guess == rho_0_high:
-                print('Reached limits of numerical precision for rho_0')
+                print('Reached limits of numerical precision for rho_0 using low bias')
                 break
 
             # calculate the luminosity error associated with the new central density guess
@@ -298,15 +343,15 @@ def solve_structure(
             elif L_error_guess > 0:
                 rho_0_high = rho_0_guess
 
-        # if the bias is favouring the upper bound, scale the central density guess using the
-        # confidence assigned to the upper density bound
+        # if the bias is favouring the upper bound, assign the central density guess using the upper
+        # and lower density bounds with the confidence assigned to the upper density bound
         elif bias_high:
             # assign the confidence to the upper density bound
             rho_0_guess = (1 - confidence) * rho_0_low + confidence * rho_0_high
 
             # check the numerical precision
             if rho_0_guess == rho_0_low or rho_0_guess == rho_0_high:
-                print('Reached limits of numerical precision for rho_0')
+                print('Reached limits of numerical precision for rho_0 using high bias')
                 break
 
             # calculate the luminosity error associated with the new central density guess
@@ -334,7 +379,7 @@ def solve_structure(
 
             # check the numerical precision
             if rho_0_guess == rho_0_low or rho_0_guess == rho_0_high:
-                print('Reached limits of numerical precision for rho_0')
+                print('Reached limits of numerical precision for rho_0 using midpoint')
                 break
 
             # calculate the luminosity error associated with the new central density guess
@@ -374,11 +419,20 @@ def solve_structure(
         )
 
     # Generate the final stellar structure solution
-    final_solution = trial_solution(
+    final_error, final_r, final_state = trial_solution(
         rho_0=rho_0,
         T_0=T_0,
         optical_depth_threshold=optical_depth_threshold,
         rtol=rtol
     )
 
-    return final_solution
+    # if normalization is requested, do so using the `normalize_data` function
+    if normalize:
+        final_r, final_state = normalize_data(
+            final_r,
+            final_state,
+            radius_norm=r_sun,
+            state_norm=[rho_0, T_0, M_sun, L_sun, 1.0] # optical depth has no common normalization
+        )
+
+    return final_error, final_r, final_state
