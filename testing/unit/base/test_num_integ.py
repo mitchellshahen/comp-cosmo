@@ -298,6 +298,3 @@ class NumericalIntegrationTestCase(unittest.TestCase):
                         maximal_error
                     )
                 )
-
-
-NumericalIntegrationTestCase().test_integration_harm_oscill(silent=False)
