@@ -111,7 +111,6 @@ class StellarStructure:
         # set the CNO abundance value
         if any(
                 [
-                    X_cno <= 0.0,
                     X_cno is None,
                     not isinstance(X_cno, (int, float))
                 ]
