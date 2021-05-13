@@ -31,7 +31,9 @@ Omega = kg * (m ** 2) / ((s ** 3) * (A ** 2)) # ohm
 Wb = kg * (m ** 2) / ((s ** 2) * A) # weber
 T = kg / ((s ** 2) * A) # tesla
 
-# additional useful non-SI units
+# additional useful non-SI or non-standard units
+g = 1000 * kg # grams
+cm = 100 * m # centimetres
 L = 0.001 * (m ** 3) # litre
 AU = 149597870700 * m # astronomical unit
-ly = 0.0 # lightyear
+ly = 9.461e15 * m # lightyear
