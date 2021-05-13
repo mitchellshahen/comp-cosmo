@@ -2,8 +2,10 @@
 Module to house additional functions.
 """
 
+from constants import L_sun, M_sun, r_sun, rho_0_sun, T_0_sun, T_sun
 import numpy
-from scipy.interpolate import interp1d
+from scipy.optimize import curve_fit
+from stellar_structure import L_index, M_index, rho_index, T_index
 
 
 def find_zeros(in_data=None, find_first=True):
@@ -49,7 +51,7 @@ def interpolate(in_data=None, index=0.0):
     """
     Interpolate the inputted dataset at the specified index.
 
-    :param in_data: The array or 2D matrix to interpolate from.
+    :param in_data: The array or multi-dimensional matrix to interpolate from.
     :param index: The index at which interpolation occurs.
     :return: The interpolated data point as a value (array input) or an array (matrix input).
     """
@@ -70,3 +72,110 @@ def interpolate(in_data=None, index=0.0):
         interp_data = numpy.array(all_interp)
 
     return interp_data
+
+
+def predict_central_density(T_0, T_0_arr, rho_0_arr, degree=1):
+    """
+    Function for using polynomial fit calculations to predict viable central density estimates for generating stars.
+
+    :param T_0: The central temperature of the star for which a central density estimate is needed.
+    :param T_0_arr: An array of central temperatures that have already been used to generate stars.
+    :param rho_0_arr: An array of central densities that have already been used to generate stars.
+    :param degree: The polynomial degree that is calculated and used for the fitting calculations.
+        If degree is `None`, an exponential fit is used instead.
+    :return: The optimal central density guess used in generating a star with central temperature, `T_0`.
+    """
+
+    # in the event no central temperatures or central densities are yet available (this is the first star being
+    # generated), force the stellar structure function to use a defaulted/sample central density estimate
+    if len(T_0_arr) == 0:
+        return None
+
+    if degree is not None:
+        # get the polynomial fit valus(s)
+        polynomial = numpy.polyfit(T_0_arr, rho_0_arr, deg=degree)
+
+        # use the polynomial fit value(s) to calculate the central density prediction
+        rho_0_prediction = numpy.poly1d(polynomial)(T_0)
+
+    else:
+        # set the exponential fit
+        def exponential_fit(x, coeff=1, exp_coeff=1, const=1):
+            return coeff * numpy.exp(exp_coeff * x) + const
+
+        # calculate the fitting parameters
+        fitting_parameters, __ = curve_fit(exponential_fit, T_0_arr, rho_0_arr)
+        a, b, c = fitting_parameters
+
+        # calculate the central density prediction
+        rho_0_prediction = exponential_fit(T_0, coeff=a, exp_coeff=b, const=c)
+
+    return rho_0_prediction
+
+
+def useful_info(error, r, state, precision=3):
+    """
+    Method to print useful information pertaining to the solved stellar properties.
+    """
+
+    # set the precision of the printed values
+    set_precision = ".{}E".format(precision)
+
+    # print the relative luminosity error
+    lumin_error = error[0]
+    print("The relative error in luminosity is {}.".format(lumin_error))
+
+    # format and print the surface radius in metres and in terms of the Sun's radius
+    actual_surf_rad = r[-1]
+    rel_surf_rad = r[-1] / r_sun
+    print(
+        "Surface Radius = {} metres or {} solar radii.".format(
+            format(actual_surf_rad, set_precision), format(rel_surf_rad, set_precision)
+        )
+    )
+
+    # format and print the central density in SI units & in terms of the Sun's central density
+    actual_cen_density = state[rho_index][0]
+    rel_cen_density = state[rho_index][0] / rho_0_sun
+    print(
+        "Core Density = {} kg/m^3 or {} times the Sun's core density.".format(
+            format(actual_cen_density, set_precision), format(rel_cen_density, set_precision)
+        )
+    )
+
+    # format and print the core temperature in Kelvin and in terms of the Sun's core temperature
+    actual_cen_temp = state[T_index][0]
+    rel_cen_temp = state[T_index][0] / T_0_sun
+    print(
+        "Core Temperature = {} Kelvin or {} times the Sun's core temperature.".format(
+            format(actual_cen_temp, set_precision), format(rel_cen_temp, set_precision)
+        )
+    )
+
+    # format & print the surface temperature in Kelvin and in terms of the Sun's surface temperature
+    # Recall: the temperature was normalized to the solar core temperature
+    actual_surf_temp = state[T_index][-1]
+    rel_surf_temp = state[T_index][-1] / T_sun
+    print(
+        "Surface Temperature = {} Kelvin or {} times the Sun's surface temperature.".format(
+            format(actual_surf_temp, set_precision), format(rel_surf_temp, set_precision)
+        )
+    )
+
+    # format and print the total mass in kilograms and in terms of the solar mass
+    actual_mass = state[M_index][-1]
+    rel_mass = state[M_index][-1] / M_sun
+    print(
+        "Total Mass = {} kilograms or {} times the Sun's mass.".format(
+            format(actual_mass, set_precision), format(rel_mass, set_precision)
+        )
+    )
+
+    # format and print the total luminosity in Watts and in terms of the solar luminosity
+    actual_lumin = state[L_index][-1]
+    rel_lumin = state[L_index][-1] / L_sun
+    print(
+        "Total Luminosity = {} Watts of {} times the Sun's luminosity.".format(
+            format(actual_lumin, set_precision), format(rel_lumin, set_precision)
+        )
+    )
