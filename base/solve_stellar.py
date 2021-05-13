@@ -3,7 +3,7 @@ Module to solve the stellar equations by means of a trial solution, testing the 
 modifying the initial parameters to improve the next trial solution attempt.
 """
 
-from constants import L_sun, M_sun, r_sun, rho_0_sun, sigma, T_0_sun
+from constants import M_sun, r_sun, sigma
 import numpy
 from scipy import integrate
 from stellar_structure import StellarStructure, rho_index, T_index, M_index, L_index, tau_index
@@ -410,6 +410,10 @@ def solve_structure(
         stellar structure solution.
     """
 
+    # if the input central density guess is None, use the default
+    if rho_0_guess is None:
+        rho_0_guess = 1e5 * (units.kg / (units.m ** 3))
+
     # ensure the confidence parameter is properly specified
     if confidence < 0.5:
         raise IOError("Confidence must be at least 0.5!")
@@ -452,11 +456,11 @@ def solve_structure(
             final_state,
             radius_norm=r_sun,
             state_norm=[
-                rho_0_sun, # normalize with the Sun's central density
-                T_0_sun, # normalize with the Sun's central temperature
-                M_sun, # normalize with the Sun's cumulative mass
-                L_sun, # normalize with the Sun's cumulative luminosity
-                1.0 # optical depth has no common normalization
+                rho_0, # normalize with the central density
+                T_0, # normalize with the central temperature
+                final_state[M_index][-1], # normalize with the final cumulative mass
+                final_state[L_index][-1], # normalize with the final cumulative luminosity
+                1.0 # optical depth has no commonly used normalization
             ]
         )
 
