@@ -61,3 +61,6 @@ rho_0_sun = 1.60e5 * (units.kg / (units.m ** 3))
 
 # solar central temperature
 T_0_sun = 1.5e7 * (units.K)
+
+# solar surface temperature
+T_sun = 5778 * (units.K)
