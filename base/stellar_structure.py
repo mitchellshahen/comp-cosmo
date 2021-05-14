@@ -79,7 +79,24 @@ class StellarStructure:
         """
 
         # extract from the input state the necessary variables
-        rho, T, M, L, tau = state
+        rho = state[rho_index]
+        T = state[T_index]
+        M = state[M_index]
+        L = state[L_index]
+
+        # ensure no state values are 0
+        if any(
+            [
+                rho <= 0,
+                T <= 0,
+                M <= 0,
+                L <= 0
+            ]
+        ):
+            raise ArithmeticError(
+                "ERROR: Encountered a zero or negative state variable in the process of integrating the stellar "
+                "structure equations."
+            )
 
         # get the density derivative
         drho_dr = self.hydrostat_equil(r=r, rho=rho, T=T, M=M, L=L)
