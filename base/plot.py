@@ -257,8 +257,14 @@ def hr_diagram(effect_temps, luminosities):
     plt.xlabel("Effective Surface Temperature (in Kelvin)")
     plt.ylabel("Relative Luminosity, L/L_sun")
 
+    # invert the x-axis so it is decreasing in temperature going left to right
+    plt.gca().invert_xaxis()
+
     # set the y-axis (luminosities) to be logarithmic
     plt.yscale("log")
 
     # set the title
     plt.title("Hertzsprung-Russell Diagram")
+
+    # render the plot
+    plt.show()
