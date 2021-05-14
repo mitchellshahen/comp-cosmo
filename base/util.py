@@ -74,13 +74,37 @@ def interpolate(in_data=None, index=0.0):
     return interp_data
 
 
-def predict_central_density(T_0, T_0_arr, rho_0_arr, degree=1):
+def normalize_data(r, state, radius_norm=1.0, state_norm=None):
+    """
+    Function to normalize the radius values and stellar state values.
+
+    :param r: A numpy ndarray of radius values.
+    :param state: A multi-dimensional matrix of stellar values including density, temperature,
+        mass, luminosity, and optical depth.
+    :param radius_norm: A value to normalize the radius values.
+    :param state_norm: A list of values normalizing each of the state values. Must match the size
+        and order of the `state` parameter.
+    :return: A tuple containing two numpy ndarrays: the normalized radii and the normalized states.
+    """
+
+    # scale the 1-D radius values by the inputted radius norm
+    r = numpy.array([item / radius_norm for item in r])
+
+    # scale the multi-dimensional state by each inputted state norm value
+    for i, state_arr in enumerate(state):
+        state[i] = numpy.array([item / state_norm[i] for item in state_arr])
+
+    return r, state
+
+
+def predict_central_density(T_0, T_0_arr, rho_0_arr, calc_method="", degree=1):
     """
     Function for using polynomial fit calculations to predict viable central density estimates for generating stars.
 
     :param T_0: The central temperature of the star for which a central density estimate is needed.
     :param T_0_arr: An array of central temperatures that have already been used to generate stars.
     :param rho_0_arr: An array of central densities that have already been used to generate stars.
+    :param calc_method: A string representing the calculation method for generating a central density prediction.
     :param degree: The polynomial degree that is calculated and used for the fitting calculations.
         If degree is `None`, an exponential fit is used instead.
     :return: The optimal central density guess used in generating a star with central temperature, `T_0`.
@@ -91,12 +115,38 @@ def predict_central_density(T_0, T_0_arr, rho_0_arr, degree=1):
     if len(T_0_arr) == 0:
         return None
 
-    if degree is not None:
+    # ensure the inputted calculation type is supported
+    supported_calc_types = ["polyfit", "logpolyfit", "expfit"]
+    if calc_method not in supported_calc_types:
+        raise IOError(
+            "ERROR: Invalid Central Density Calculation Method. Supported Calculation Methods Include: {}".format(
+                supported_calc_types
+            )
+        )
+
+    # ensure the degree parameter is a non-zero, non-negative integer
+    if not isinstance(degree, int):
+        raise IOError("The degree parameter must be an integer.")
+    elif degree <= 0:
+        raise IOError("The degree parameter must be positive.")
+
+    if calc_method == "polyfit":
         # get the polynomial fit valus(s)
         polynomial = numpy.polyfit(T_0_arr, rho_0_arr, deg=degree)
 
         # use the polynomial fit value(s) to calculate the central density prediction
         rho_0_prediction = numpy.poly1d(polynomial)(T_0)
+
+    elif calc_method == "logpolyfit":
+        # set the x-axis and y-axis datasets used to calculate the polynomial fit
+        x_data = numpy.log(T_0_arr[-(degree + 1):])
+        y_data = numpy.log(rho_0_arr[-(degree + 1):])
+
+        # calculate the polynomial fit
+        polynomial = numpy.polyfit(x_data, y_data, deg=len(x_data) - 1)
+
+        # calculate the central density estimate
+        rho_0_prediction = numpy.exp(numpy.poly1d(polynomial)(numpy.log(T_0)))
 
     else:
         # set the exponential fit
@@ -123,7 +173,7 @@ def useful_info(error, r, state, precision=3):
 
     # print the relative luminosity error
     lumin_error = error[0]
-    print("The relative error in luminosity is {}.".format(lumin_error))
+    print("The relative error in luminosity is {}.".format(format(lumin_error, set_precision)))
 
     # format and print the surface radius in metres and in terms of the Sun's radius
     actual_surf_rad = r[-1]
