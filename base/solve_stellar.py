@@ -3,35 +3,12 @@ Module to solve the stellar equations by means of a trial solution, testing the 
 modifying the initial parameters to improve the next trial solution attempt.
 """
 
-from constants import M_sun, r_sun, sigma
+from constants import M_sun, sigma
 import numpy
 from scipy import integrate
 from stellar_structure import StellarStructure, rho_index, T_index, M_index, L_index, tau_index
 import units
-from util import find_zeros, interpolate
-
-
-def normalize_data(r, state, radius_norm=0, state_norm=None):
-    """
-    Function to normalize the radius values and stellar state values.
-
-    :param r: A numpy ndarray of radius values.
-    :param state: A multi-dimensional matrix of stellar values including density, temperature,
-        mass, luminosity, and optical depth.
-    :param radius_norm: A value to normalize the radius values.
-    :param state_norm: A list of values normalizing each of the state values. Must match the size
-        and order of the `state` parameter.
-    :return: A tuple containing two numpy ndarrays: the normalized radii and the normalized states.
-    """
-
-    # scale the 1-D radius values by the inputted radius norm
-    r = numpy.array([item / radius_norm for item in r])
-
-    # scale the multi-dimensional state by each inputted state norm value
-    for i, state_arr in enumerate(state):
-        state[i] = numpy.array([item / state_norm[i] for item in state_arr])
-
-    return r, state
+from util import find_zeros, interpolate, normalize_data
 
 
 def get_remaining_optical_depth(r, state):
@@ -136,7 +113,7 @@ def trial_solution(
         T_0=1.0 * units.K,
         optical_depth_threshold=1e-4,
         mass_threshold=1000 * M_sun,
-        rtol=1e-9,
+        rtol=None,
         atol=None
 ):
     """
@@ -150,10 +127,13 @@ def trial_solution(
     :param optical_depth_threshold: The remaining optical depth values at which the integration is
         allowed to stop.
     :param mass_threshold: The maximal stellar mass to prevent unbounded integration.
-    :param rtol: The required relative accuracy during integration.
+    :param rtol: The required relative accuracy during integration. Defaults to 1e-9.
     :param atol: The required absolute accuracy during integration. Defaults to rtol / 1000.
     :returns: The surface luminosity error and the array of radius values and the state matrix.
     """
+
+    if rtol is None:
+        rtol = 1e-9
 
     if atol is None:
         atol = rtol / 1000
@@ -195,180 +175,227 @@ def bisection_method(
         structure solution and the final luminosity error to check for sufficient convergence.
     """
 
-    # calculate the luminosity error associated with the central density guess
-    L_error_guess, __, __ = trial_solution(
-        rho_0=rho_0_guess,
-        T_0=T_0,
-        optical_depth_threshold=optical_depth_threshold,
-        rtol=rtol
-    )
+    # set up an output central density and luminosity error to contain the last valid central density estimate and
+    # its corresponding luminosity error; if an error occurs, return the last valid central density estimate
+    output_rho_0 = 0
+    L_error_guess = 0
 
-    # if using the input central density guess resulted in no luminosity error, return the
-    # luminosity error, radius values, and state values from using the density guess
-    if L_error_guess == 0:
-        return rho_0_guess
+    # try to perform the necessary bisection method calculations for as long as possible until
+    # convergence is met or an error occurs
+    try:
+        # ---------- # ESTABLISH BIASES AND CHECK FOR IDEAL SOLUTIONS # ---------- #
 
-    # calculate the luminosity error associated with the minimum central density
-    L_error_min, __, __ = trial_solution(
-        rho_0=rho_0_min,
-        T_0=T_0,
-        optical_depth_threshold=optical_depth_threshold,
-        rtol=rtol
-    )
-
-    # if using the minimum central density resulted in no luminosity error, return the
-    # luminosity error, radius values, and state values from using the minimum density
-    if L_error_min == 0:
-        return rho_0_min
-
-    # if the intended zero luminosity error is between the minimum and guess densities, set the
-    # lower and upper central densities as the minimum and guess densities and set the biases
-    if L_error_min < 0 < L_error_guess:
-        rho_0_low, rho_0_high = rho_0_min, rho_0_guess
-        bias_high = True
-        bias_low = False
-    elif L_error_guess < 0 < L_error_min:
-        rho_0_low, rho_0_high = rho_0_guess, rho_0_min
-        bias_low = True
-        bias_high = False
-
-    # if the luminosity error is not within the minimum and guessed densities, repeat the above
-    # processes using the guess density and the maximum density
-    else:
-        # calculate the luminosity error associated with the maximum central density
-        L_error_max, __, __ = trial_solution(
-            rho_0=rho_0_max,
+        # calculate the luminosity error associated with the central density guess
+        L_error_guess, __, __ = trial_solution(
+            rho_0=rho_0_guess,
             T_0=T_0,
             optical_depth_threshold=optical_depth_threshold,
             rtol=rtol
         )
 
-        # if using the maximum central density resulted in no luminosity error, return the
-        # luminosity error, radius values, and state values from using the maximum density
-        if L_error_max == 0:
-            return rho_0_max
+        # upon completing the initial trial solution successfully, replace the central density and luminosity error
+        output_rho_0 = rho_0_guess
+        L_error_guess = L_error_guess
 
-        # if the intended zero luminosity error is between the maximum and guess densities, set the
-        # lower and upper central densities as the maximum and guess densities and set the biases
-        if L_error_max < 0 < L_error_guess:
-            rho_0_low, rho_0_high = rho_0_max, rho_0_guess
+        # if using the input central density guess resulted in no luminosity error, return the
+        # luminosity error, radius values, and state values from using the density guess
+        if L_error_guess == 0:
+            return rho_0_guess
+
+        # calculate the luminosity error associated with the minimum central density
+        L_error_min, __, __ = trial_solution(
+            rho_0=rho_0_min,
+            T_0=T_0,
+            optical_depth_threshold=optical_depth_threshold,
+            rtol=rtol
+        )
+
+        # if using the minimum central density resulted in no luminosity error, return the
+        # luminosity error, radius values, and state values from using the minimum density
+        if L_error_min == 0:
+            return rho_0_min
+
+        # if the intended zero luminosity error is between the minimum and guess densities, set the
+        # lower and upper central densities as the minimum and guess densities and set the biases
+        if L_error_min < 0 < L_error_guess:
+            rho_0_low, rho_0_high = rho_0_min, rho_0_guess
             bias_high = True
             bias_low = False
-        elif L_error_guess < 0 < L_error_max:
-            rho_0_low, rho_0_high = rho_0_guess, rho_0_max
+        elif L_error_guess < 0 < L_error_min:
+            rho_0_low, rho_0_high = rho_0_guess, rho_0_min
             bias_low = True
             bias_high = False
+
+        # if the luminosity error is not within the minimum and guessed densities, repeat the above
+        # processes using the guess density and the maximum density
         else:
-            # if the central density that gives no error lies outside the density constraints,
-            # re-run this function using larger density contraints
-            print(
-                "Retrying with larger central density interval for a central temperature "
-                "of {} Kelvin".format(T_0)
-            )
-
-            # set confidence to be much higher since we know that the other
-            # boundary will be even further from the guess
-            return solve_structure(
-                T_0,
-                rho_0_guess=rho_0_guess,
-                confidence=(confidence + 4) / 5,
-                rho_0_min=rho_0_min / 1000,
-                rho_0_max=1000 * rho_0_max,
-                rho_0_tol=rho_0_tol,
-                rtol=rtol,
-                optical_depth_threshold=optical_depth_threshold
-            )
-
-    # continue to increase the precision until the central density tolerance is met
-    while numpy.abs(rho_0_high - rho_0_low) / 2 > rho_0_tol:
-        # if the bias is favouring the lower bound, assign the central density guess using the upper
-        # and lower density bounds with the confidence assigned to the lower density bound
-        if bias_low:
-            # assign the confidence to the lower density bound
-            rho_0_guess = confidence * rho_0_low + (1 - confidence) * rho_0_high
-
-            # check for numerical precision
-            if rho_0_guess == rho_0_low or rho_0_guess == rho_0_high:
-                print('Reached limits of numerical precision for rho_0 using low bias')
-                break
-
-            # calculate the luminosity error associated with the new central density guess
-            L_error_guess, __, __ = trial_solution(
-                rho_0=rho_0_guess,
+            # calculate the luminosity error associated with the maximum central density
+            L_error_max, __, __ = trial_solution(
+                rho_0=rho_0_max,
                 T_0=T_0,
                 optical_depth_threshold=optical_depth_threshold,
                 rtol=rtol
             )
 
-            # check the luminosity error of the new central density guess and assign the
-            # upper and lower densities accordingly
-            if L_error_guess == 0:
-                return rho_0_guess
-            if L_error_guess < 0:
-                rho_0_low = rho_0_guess
-                bias_low = False  # ignore initial guess bias since it is no longer the low endpoint
-            elif L_error_guess > 0:
-                rho_0_high = rho_0_guess
+            # if using the maximum central density resulted in no luminosity error, return the
+            # luminosity error, radius values, and state values from using the maximum density
+            if L_error_max == 0:
+                return rho_0_max
 
-        # if the bias is favouring the upper bound, assign the central density guess using the upper
-        # and lower density bounds with the confidence assigned to the upper density bound
-        elif bias_high:
-            # assign the confidence to the upper density bound
-            rho_0_guess = (1 - confidence) * rho_0_low + confidence * rho_0_high
+            # if the intended zero luminosity error is between the maximum and guess densities, set the
+            # lower and upper central densities as the maximum and guess densities and set the biases
+            if L_error_max < 0 < L_error_guess:
+                rho_0_low, rho_0_high = rho_0_max, rho_0_guess
+                bias_high = True
+                bias_low = False
+            elif L_error_guess < 0 < L_error_max:
+                rho_0_low, rho_0_high = rho_0_guess, rho_0_max
+                bias_low = True
+                bias_high = False
+            else:
+                # if the central density that gives no error lies outside the density constraints,
+                # re-run this function using larger density contraints
+                print(
+                    "Retrying with larger central density interval for a central temperature "
+                    "of {} Kelvin".format(T_0)
+                )
 
-            # check the numerical precision
-            if rho_0_guess == rho_0_low or rho_0_guess == rho_0_high:
-                print('Reached limits of numerical precision for rho_0 using high bias')
-                break
+                # set confidence to be much higher since we know that the other
+                # boundary will be even further from the guess
+                return solve_structure(
+                    T_0,
+                    rho_0_guess=rho_0_guess,
+                    confidence=(confidence + 4) / 5,
+                    rho_0_min=rho_0_min / 1000,
+                    rho_0_max=1000 * rho_0_max,
+                    rho_0_tol=rho_0_tol,
+                    rtol=rtol,
+                    optical_depth_threshold=optical_depth_threshold
+                )
 
-            # calculate the luminosity error associated with the new central density guess
-            L_error_guess, __, __ = trial_solution(
-                rho_0=rho_0_guess,
-                T_0=T_0,
-                optical_depth_threshold=optical_depth_threshold,
-                rtol=rtol
+        # ---------- # USE THE BIASES AND CONFIDENCE TO IMPROVE THE CENTRAL DENSITY GUESS # ---------- #
+
+        # continue to increase the precision until the central density tolerance is met
+        while numpy.abs(rho_0_high - rho_0_low) / 2 > rho_0_tol:
+            # if the bias is favouring the lower bound, assign the central density guess using the upper
+            # and lower density bounds with the confidence assigned to the lower density bound
+            if bias_low:
+                # assign the confidence to the lower density bound
+                rho_0_guess = confidence * rho_0_low + (1 - confidence) * rho_0_high
+
+                # check for numerical precision
+                if rho_0_guess == rho_0_low or rho_0_guess == rho_0_high:
+                    print('Reached limits of numerical precision for rho_0 using low bias')
+                    break
+
+                # calculate the luminosity error associated with the new central density guess
+                L_error_guess, __, __ = trial_solution(
+                    rho_0=rho_0_guess,
+                    T_0=T_0,
+                    optical_depth_threshold=optical_depth_threshold,
+                    rtol=rtol
+                )
+
+                # upon completing the bias low trial solution successfully,
+                # replace the central density and luminosity error
+                output_rho_0 = rho_0_guess
+                L_error_guess = L_error_guess
+
+                # check the luminosity error of the new central density guess and assign the
+                # upper and lower densities accordingly
+                if L_error_guess == 0:
+                    return rho_0_guess
+                if L_error_guess < 0:
+                    rho_0_low = rho_0_guess
+                    bias_low = False  # ignore initial guess bias since it is no longer the low endpoint
+                elif L_error_guess > 0:
+                    rho_0_high = rho_0_guess
+
+            # if the bias is favouring the upper bound, assign the central density guess using the upper
+            # and lower density bounds with the confidence assigned to the upper density bound
+            elif bias_high:
+                # assign the confidence to the upper density bound
+                rho_0_guess = (1 - confidence) * rho_0_low + confidence * rho_0_high
+
+                # check the numerical precision
+                if rho_0_guess == rho_0_low or rho_0_guess == rho_0_high:
+                    print('Reached limits of numerical precision for rho_0 using high bias')
+                    break
+
+                # calculate the luminosity error associated with the new central density guess
+                L_error_guess, __, __ = trial_solution(
+                    rho_0=rho_0_guess,
+                    T_0=T_0,
+                    optical_depth_threshold=optical_depth_threshold,
+                    rtol=rtol
+                )
+
+                # upon completing the bias high trial solution successfully,
+                # replace the central density and luminosity error
+                output_rho_0 = rho_0_guess
+                L_error_guess = L_error_guess
+
+                # check the luminosity error of the new central density guess and assign the
+                # upper and lower densities accordingly
+                if L_error_guess == 0:
+                    return rho_0_guess
+                if L_error_guess < 0:
+                    rho_0_low = rho_0_guess
+                elif L_error_guess > 0:
+                    rho_0_high = rho_0_guess
+                    bias_high = False # ignore initial guess bias since it's no longer the high endpoint
+
+            # if the re-calculated luminosity error has flipped sign in a previous iteration, modify
+            # the central density guess to be the midpoint between the upper and lower bounds
+            else:
+                # assign the central density guess as the midpoint between the upper and lower bounds
+                rho_0_guess = (rho_0_low + rho_0_high) / 2
+
+                # check the numerical precision
+                if rho_0_guess == rho_0_low or rho_0_guess == rho_0_high:
+                    print('Reached limits of numerical precision for rho_0 using midpoint')
+                    break
+
+                # calculate the luminosity error associated with the new central density guess
+                L_error_guess, __, __ = trial_solution(
+                    rho_0=rho_0_guess,
+                    T_0=T_0,
+                    optical_depth_threshold=optical_depth_threshold,
+                    rtol=rtol
+                )
+
+                # upon completing the midpoint trial solution successfully,
+                # replace the central density and luminosity error
+                output_rho_0 = rho_0_guess
+                L_error_guess = L_error_guess
+
+                # check the luminosity error of the new central density guess and assign the
+                # upper and lower densities accordingly
+                if L_error_guess == 0:
+                    return rho_0_guess
+                if L_error_guess < 0:
+                    rho_0_low = rho_0_guess
+                elif L_error_guess > 0:
+                    rho_0_high = rho_0_guess
+
+        # if no ideal error was obtained, output the midpoint between the upper and lower density bounds
+        output_rho_0 = (rho_0_low + rho_0_high) / 2
+
+    except ArithmeticError as error_message:
+        # print that an error occurred forcing the last used valid central density was used
+        print(error_message)
+
+        # check if at least one calculation executed without error
+        if any(
+            [
+                output_rho_0 == 0,
+                L_error_guess == 0
+            ]
+        ):
+            raise OSError(
+                "An error occurred in the initial solve stellar calculation using the initially provided central "
+                "temperature and central density values. Amend these values and re-run the solution program."
             )
-
-            # check the luminosity error of the new central density guess and assign the
-            # upper and lower densities accordingly
-            if L_error_guess == 0:
-                return rho_0_guess
-            if L_error_guess < 0:
-                rho_0_low = rho_0_guess
-            elif L_error_guess > 0:
-                rho_0_high = rho_0_guess
-                bias_high = False # ignore initial guess bias since it's no longer the high endpoint
-
-        # if the re-calculated luminosity error has flipped sign in a previous iteration, modify
-        # the central density guess to be the midpoint between the upper and lower bounds
-        else:
-            # assign the central density guess as the midpoint between the upper and lower bounds
-            rho_0_guess = (rho_0_low + rho_0_high) / 2
-
-            # check the numerical precision
-            if rho_0_guess == rho_0_low or rho_0_guess == rho_0_high:
-                print('Reached limits of numerical precision for rho_0 using midpoint')
-                break
-
-            # calculate the luminosity error associated with the new central density guess
-            L_error_guess, __, __ = trial_solution(
-                rho_0=rho_0_guess,
-                T_0=T_0,
-                optical_depth_threshold=optical_depth_threshold,
-                rtol=rtol
-            )
-
-            # check the luminosity error of the new central density guess and assign the
-            # upper and lower densities accordingly
-            if L_error_guess == 0:
-                return rho_0_guess
-            if L_error_guess < 0:
-                rho_0_low = rho_0_guess
-            elif L_error_guess > 0:
-                rho_0_high = rho_0_guess
-
-    # if no ideal error was obtained, output the midpoint between the upper and lower density bounds
-    output_rho_0 = (rho_0_low + rho_0_high) / 2
 
     return output_rho_0, L_error_guess
 
@@ -424,23 +451,6 @@ def solve_structure(
         T_0, rho_0_guess, confidence, rho_0_min, rho_0_max, rho_0_tol, rtol, optical_depth_threshold
     )
 
-    # if solution failed to converge, recurse with greater accuracy
-    if numpy.abs(L_error_guess) > 1000:
-        print(
-            "Retrying stellar equation solution for central temperature, T = {} Kelvin, "
-            "with higher accuracy: {} --> {}".format(T_0, confidence, 0.99)
-        )
-        return solve_structure(
-            T_0,
-            rho_0_guess=rho_0,
-            confidence=0.99,  # set the confidence to be extremely high now
-            rho_0_min=rho_0_min,
-            rho_0_max=rho_0_max,
-            rho_0_tol=rho_0_tol,
-            rtol=rtol * 100,
-            optical_depth_threshold=optical_depth_threshold
-        )
-
     # using the final central density value, generate the final stellar structure solution
     final_error, final_r, final_state = trial_solution(
         rho_0=rho_0,
@@ -449,15 +459,34 @@ def solve_structure(
         rtol=rtol
     )
 
+    # double check the final error
+    if numpy.abs(final_error) > 1000:
+        higher_accuracy = confidence + ((1.0 - confidence) / 2)
+        print(
+            "Solution failed to converge. Retrying stellar equation solution for central temperature, "
+            "T = {} Kelvin, with higher accuracy: {} --> {}".format(T_0, confidence, higher_accuracy)
+        )
+        return solve_structure(
+            T_0,
+            rho_0_guess=rho_0,
+            confidence=higher_accuracy, # set the confidence to be much higher now
+            rho_0_min=rho_0_min,
+            rho_0_max=rho_0_max,
+            rho_0_tol=rho_0_tol,
+            rtol=rtol * 100,
+            optical_depth_threshold=optical_depth_threshold,
+            normalize=normalize
+        )
+
     # if normalization is requested, do so using the `normalize_data` function
     if normalize:
         final_r, final_state = normalize_data(
             final_r,
             final_state,
-            radius_norm=r_sun,
+            radius_norm=final_r[-1], # normalize with the surface radius
             state_norm=[
-                rho_0, # normalize with the central density
-                T_0, # normalize with the central temperature
+                final_state[rho_index][0], # normalize with the central density
+                final_state[T_index][0], # normalize with the central temperature
                 final_state[M_index][-1], # normalize with the final cumulative mass
                 final_state[L_index][-1], # normalize with the final cumulative luminosity
                 1.0 # optical depth has no commonly used normalization
