@@ -19,18 +19,23 @@ def generate_star():
     """
 
     # set the central temperature
-    T_0 = 2e7 * units.K
+    # T_0 = 2e7 * units.K
     # T_0 = 8.23e6 * units.K
+    T_0 = 1.5e7 * units.K
 
     # set the initial central density guess
-    rho_0_guess = 8.0063e4 * units.kg / (units.m ** 3)
+    # rho_0_guess = 8.0063e4 * units.kg / (units.m ** 3)
     # rho_0_guess = 5.856e4 * units.kg / (units.m ** 3)
+    rho_0_guess = 1e5 * units.kg / (units.m ** 3)
 
     # set the confidence
     confidence = 0.5
 
     # set the decision of whether or not to normalize the results
-    normalize = True
+    normalize = False
+
+    # set the decision of whether or not to save the data
+    save_data = False
 
     # solve the stellar structure equations and acquire the necessary data
     lumin_error, radius_arr, state_matrix = solve_structure(
@@ -58,16 +63,21 @@ def generate_star():
     )
 
     # save the outputted datasets for radius and state
-    Store().save(data=full_data, data_filename="first_stellar_data_norm.pickle")
+    if save_data:
+        if normalize:
+            Store().save(data=full_data, data_filename="first_stellar_data.pickle")
+        else:
+            Store().save(data=full_data, data_filename="first_stellar_data_norm.pickle")
 
-    # plot all the necessary graphs describing the above generated star
-    stellar_structure_plot(
-        radius=full_data[0],
-        density=full_data[rho_index + 1],
-        temperature=full_data[T_index + 1],
-        mass=full_data[M_index + 1],
-        luminosity=full_data[L_index + 1]
-    )
+    # plot all the necessary graphs describing the above generated star only if it has been normalized
+    if normalize:
+        stellar_structure_plot(
+            radius=full_data[0],
+            density=full_data[rho_index + 1],
+            temperature=full_data[T_index + 1],
+            mass=full_data[M_index + 1],
+            luminosity=full_data[L_index + 1]
+        )
 
 
 def generate_star_sequence():
@@ -77,7 +87,7 @@ def generate_star_sequence():
     """
 
     # number of stars to generate
-    N = 100
+    N = 10
 
     # initial central temperature to survey
     T_0_i = 1e5 * units.K
@@ -91,10 +101,11 @@ def generate_star_sequence():
     # execute the solve_structure function for the first star using the default central density guess;
     # this is done to create non-empty arrays of central temperatures and central densities that can
     # be used to predict viable central densities for all the proceeding central temperature values
+    print("\nSolving Star 1")
     __, first_radius_arr, first_state_matrix = solve_structure(
         T_0_i,
-        rho_0_guess=1e5 * units.kg / (units.m ** 3),
-        confidence=0.5,
+        rho_0_guess=1e4 * units.kg / (units.m ** 3),
+        confidence=0.75,
         normalize=False
     )
 
@@ -111,13 +122,17 @@ def generate_star_sequence():
 
     # iterate through every central temperature (after the initial central temperature) generating a star at each value
     for i, in_central_temp in enumerate(all_cen_temp[1:]):
+        # progress indicator
+        print("\nSolving Star {}".format(i + 2))
+
         # use the central temperature and central density arrays to
         # calculate a central density estimate for the current star
         rho_0_prediction = predict_central_density(
-            in_central_temp,
-            important_properties[2][:],
-            important_properties[1][:],
-            degree=3 # use a decent polynomial fit degree parameter to avoid Rank Warnings
+            in_central_temp, # current central temperature
+            important_properties[2][:], # central temperature array
+            important_properties[1][:], # central density array
+            calc_method="logpolyfit",
+            degree=1 # use a decent polynomial fit degree parameter to avoid Rank Warnings
         )
 
         # use the predicted central density to generate the star with central temperature, `in_central_temp`
@@ -128,32 +143,14 @@ def generate_star_sequence():
             normalize=False
         )
 
-        # acquire the surface radius
-        surf_rad = radius_arr[-1]
-
-        # acquire the central density
-        central_density = state_matrix[rho_index][0]
-
-        # acquire the central temperature
-        central_temp = state_matrix[T_index][0]
-
-        # acquire the surface temperature
-        surf_temp = state_matrix[T_index][-1]
-
-        # acquire the total mass
-        total_mass = state_matrix[M_index][-1]
-
-        # acquire the total luminosity
-        total_luminosity = state_matrix[L_index][-1]
-
         # create an array of the same shape as `important_properties` to contain the new data
         new_properties = numpy.array([
-            [surf_rad], # surface radii
-            [central_density], # central densities
-            [central_temp], # central temperature
-            [surf_temp], # surface temperatures
-            [total_mass], # total masses
-            [total_luminosity] # total luminosities
+            [radius_arr[-1]], # surface radii
+            [state_matrix[rho_index][0]], # central densities
+            [state_matrix[T_index][0]], # central temperature
+            [state_matrix[T_index][-1]], # surface temperatures
+            [state_matrix[M_index][-1]], # total masses
+            [state_matrix[L_index][-1]] # total luminosities
         ])
 
         # add the array of new properties to the array of all properties
