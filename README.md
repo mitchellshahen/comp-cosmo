@@ -1,4 +1,5 @@
 # Computational Cosmology
 
-### Library and Environment for Performing Computational Analysis and Modelling of Cosmological Processes
+## Library and Environment for Performing Computational Analysis and Modelling of Cosmological Processes
 
+### Stellar Structure:
