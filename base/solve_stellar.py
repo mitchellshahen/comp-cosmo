@@ -1,6 +1,13 @@
 """
-Module to solve the stellar equations by means of a trial solution, testing the trial solution, and
-modifying the initial parameters to improve the next trial solution attempt.
+Module to solve the stellar equations by means of a trial solution, testing the trial solution and
+its parameters, and modifying the initial parameters to improve the next trial solution attempt.
+
+
+:title: solve_stellar.py
+
+:author: Mitchell Shahen
+
+:history: 07/05/2021
 """
 
 from constants import M_sun, sigma
@@ -16,12 +23,12 @@ def get_remaining_optical_depth(r, state):
     Method to obtain the remaining optical depth beyond a radius value. This remaining optical
     depth value is used to determine when the integration can be stopped.
 
-    For R >> 1 and R >> r:
+    For R >> 1 and R >> r (like R ~ inf and r is finite):
         tau(R) - tau(r) ~= kappa * (rho ** 2) / abs(drho/dr)
 
-    :param r: A radius value at which the remaining optical depth is to be calculated
-    :param state: An array containing the state values evaluated at the radius, `r`
-    :returns: The remaining optical depth value at the radius, `r`
+    :param r: A radius value at which the remaining optical depth is to be calculated.
+    :param state: An array containing the state values evaluated at the radius, `r`.
+    :returns: The remaining optical depth value at the radius, `r`.
     """
 
     # extract the necessary values from the inputted state variable
@@ -52,8 +59,8 @@ def test_luminosity(r, state):
     The expected surface luminosity is calculated as:
         L_surf = 4 * pi * sigma * (r ** 2) * (T ** 4)
 
-    :param r: An array of radius values from a non-zero minimum radius to (effectively) infinity
-    :param state: A matrix of state values evaluated at the various radii in `r`
+    :param r: An array of radius values from a non-zero minimum radius to (effectively) infinity.
+    :param state: A matrix of state values evaluated at the various radii in `r`.
     :return: A tuple containing the luminosity error at the interpolated surface radius, an array of
         radius values truncated to the surface radius value, and a matrix of state values evaluated
         at each radius.
@@ -129,7 +136,7 @@ def trial_solution(
     :param mass_threshold: The maximal stellar mass to prevent unbounded integration.
     :param rtol: The required relative accuracy during integration. Defaults to 1e-9.
     :param atol: The required absolute accuracy during integration. Defaults to rtol / 1000.
-    :returns: The surface luminosity error and the array of radius values and the state matrix.
+    :returns: The surface luminosity error and the array of radius value and the state matrix.
     """
 
     if rtol is None:
@@ -171,8 +178,18 @@ def bisection_method(
 ):
     """
     Method to execute the bisection method with the notion of a confidence value.
-    :return: A tuple of the optimal central density value to use in evaluating the final stellar
-        structure solution and the final luminosity error to check for sufficient convergence.
+
+    :param T_0: The initial radius. Must be greater than 0 to prevent numerical instabilities.
+    :param rho_0_guess: The density at a radius `r_0`.
+    :param confidence: The confidence of the central density guess. This parameter must be strictly
+        between 0.5 (no confidence) and 1 (complete confidence).
+    :param rho_0_min: The minimal central density guess.
+    :param rho_0_max: The maximal central density guess.
+    :param rho_0_tol: The tolerance associated with selecting the central density guess.
+    :param rtol: The required relative accuracy during integration.
+    :param optical_depth_threshold: The remaining optical depth value at which the integration is
+        allowed to stop.
+    :return: The optimal central density guess.
     """
 
     # set up an output central density and luminosity error to contain the last valid central density estimate and
