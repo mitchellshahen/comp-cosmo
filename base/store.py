@@ -32,6 +32,8 @@ class Store:
     def __init__(self, data_directory=default_data_dir):
         """
         Constructor class object for the Store class.
+
+        :param data_directory: The path to the directory where data is stored (or is intended to be stored).
         """
 
         self.data_directory = data_directory
@@ -39,11 +41,12 @@ class Store:
     def admin(self, verbose=False):
         """
         Method to print useful information about the data store.
+
+        :param verbose: A boolean indicating if information about all the stored data is printed as well.
         """
 
         # print the administrative information
         print("Computational Cosmology Data Store")
-        print("Maintainer: Mitchell Shahen")
 
         # acquire a list of the files and ancillary directories in the data store
         data_names = os.listdir(self.data_directory)
@@ -70,7 +73,10 @@ class Store:
 
     def get(self, data_filename=""):
         """
-        Method for acquiring data
+        Method for acquiring data from the data store.
+
+        :param data_filename: The name of the file containing the intended data.
+        :returns: The data from the selected data file.
         """
 
         # construct the full filepath
@@ -94,7 +100,10 @@ class Store:
 
     def save(self, data=None, data_filename=""):
         """
-        Method for saving data locally
+        Method for saving data locally.
+
+        :param data: The data intended to be saved.
+        :param data_filename: The name of the file to contain the inputted data.
         """
 
         filepath = os.path.join(self.data_directory, data_filename)
