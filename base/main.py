@@ -1,6 +1,12 @@
 """
 Module to perform all the necessary functions and calculations to generate the datasets that
 describe a star. Additionally, plots of the stellar structure variables are rendered.
+
+:title: main.py
+
+:author: Mitchell Shahen
+
+:history: 10/05/2021
 """
 
 import numpy
@@ -9,7 +15,7 @@ from solve_stellar import solve_structure
 from stellar_structure import L_index, M_index, rho_index, T_index
 from store import Store
 import units
-from util import predict_central_density, useful_info
+from util import extrapolate, stellar_info
 
 
 def generate_star():
@@ -48,7 +54,7 @@ def generate_star():
     # can only acquire and useful information about the stellar structure solutions
     # when the solution is not normalized
     if not normalize:
-        useful_info(
+        stellar_info(
             error=lumin_error,
             r=radius_arr,
             state=state_matrix,
@@ -126,11 +132,11 @@ def generate_star_sequence():
         print("\nSolving Star {}".format(i + 2))
 
         # use the central temperature and central density arrays to
-        # calculate a central density estimate for the current star
-        rho_0_prediction = predict_central_density(
-            in_central_temp, # current central temperature
-            important_properties[2][:], # central temperature array
-            important_properties[1][:], # central density array
+        # extrapolate a central density estimate for the current star
+        rho_0_prediction = extrapolate(
+            x=in_central_temp, # current central temperature
+            x_arr=important_properties[2][:], # central temperature array
+            y_arr=important_properties[1][:], # central density array
             calc_method="logpolyfit",
             degree=1 # use a decent polynomial fit degree parameter to avoid Rank Warnings
         )
