@@ -1,5 +1,11 @@
 """
-Module to house additional functions.
+Module to contain additional functions used throughout the environment.
+
+:title: util.py
+
+:author: Mitchell Shahen
+
+:history: 10/05/2021
 """
 
 from constants import L_sun, M_sun, r_sun, rho_0_sun, T_0_sun, T_sun
@@ -14,6 +20,7 @@ def find_zeros(in_data=None, find_first=True):
     positive to negative or vice versa.
 
     :param in_data: A 1-Dimensional numpy array.
+    :param find_first: A boolean indicating if only the first instance of a zero is outputted.
     :return: An array containing the indices, as floating point values, where sign flips occur.
     """
 
@@ -76,7 +83,8 @@ def interpolate(in_data=None, index=0.0):
 
 def normalize_data(r, state, radius_norm=1.0, state_norm=None):
     """
-    Function to normalize the radius values and stellar state values.
+    Function to normalize the radius values and stellar state values using the inputted radius and
+    stellar state normalization values.
 
     :param r: A numpy ndarray of radius values.
     :param state: A multi-dimensional matrix of stellar values including density, temperature,
@@ -97,75 +105,93 @@ def normalize_data(r, state, radius_norm=1.0, state_norm=None):
     return r, state
 
 
-def predict_central_density(T_0, T_0_arr, rho_0_arr, calc_method="", degree=1):
+def extrapolate(x=None, x_arr=None, y_arr=None, calc_method="", degree=1):
     """
-    Function for using polynomial fit calculations to predict viable central density estimates for generating stars.
+    Function for using various fitting calculations on a set of x values and y values to extrapolate a y-value
+    corresponding to the inputted x value.
 
-    :param T_0: The central temperature of the star for which a central density estimate is needed.
-    :param T_0_arr: An array of central temperatures that have already been used to generate stars.
-    :param rho_0_arr: An array of central densities that have already been used to generate stars.
-    :param calc_method: A string representing the calculation method for generating a central density prediction.
+    :param x: The value at which the intended extrapolated value corresponds to.
+    :param x_arr: An array of x values to be used in the extrapolation calculations.
+    :param y_arr: An array of y values to be used in the extrapolation calculations.
+    :param calc_method: A string representing the calculation method for generating an extrapolation prediction.
     :param degree: The polynomial degree that is calculated and used for the fitting calculations.
         If degree is `None`, an exponential fit is used instead.
-    :return: The optimal central density guess used in generating a star with central temperature, `T_0`.
+    :return: The y value extrapolated to correspond with the x value parameter.
     """
 
-    # in the event no central temperatures or central densities are yet available (this is the first star being
-    # generated), force the stellar structure function to use a defaulted/sample central density estimate
-    if len(T_0_arr) == 0:
+    # if any of the inspected x value, x array, or y array inputs are invalid, return None
+    if any(
+        [
+            x is None,
+            len(x_arr) == 0,
+            len(y_arr) == 0
+        ]
+    ):
         return None
 
     # ensure the inputted calculation type is supported
     supported_calc_types = ["polyfit", "logpolyfit", "expfit"]
     if calc_method not in supported_calc_types:
         raise IOError(
-            "ERROR: Invalid Central Density Calculation Method. Supported Calculation Methods Include: {}".format(
+            "ERROR: Invalid Prediction Calculation Method. "
+            "Supported Calculation Methods Include: {}".format(
                 supported_calc_types
             )
         )
 
-    # ensure the degree parameter is a non-zero, non-negative integer
+    # ensure the degree parameter is a non-zero, non-negative integer;
+    # also acceptable is a degree parameter of None, but only when using the exponential fit method
     if not isinstance(degree, int):
-        raise IOError("The degree parameter must be an integer.")
+        if degree is None:
+            calc_method = "exp_fit"
+        else:
+            raise IOError("The degree parameter must be an integer.")
     elif degree <= 0:
         raise IOError("The degree parameter must be positive.")
 
     if calc_method == "polyfit":
         # get the polynomial fit valus(s)
-        polynomial = numpy.polyfit(T_0_arr, rho_0_arr, deg=degree)
+        polynomial = numpy.polyfit(x_arr, y_arr, deg=degree)
 
-        # use the polynomial fit value(s) to calculate the central density prediction
-        rho_0_prediction = numpy.poly1d(polynomial)(T_0)
+        # use the polynomial fit value(s) to calculate the prediction
+        prediction = numpy.poly1d(polynomial)(x)
 
     elif calc_method == "logpolyfit":
         # set the x-axis and y-axis datasets used to calculate the polynomial fit
-        x_data = numpy.log(T_0_arr[-(degree + 1):])
-        y_data = numpy.log(rho_0_arr[-(degree + 1):])
+        x_data = numpy.log(x_arr[-(degree + 1):])
+        y_data = numpy.log(y_arr[-(degree + 1):])
 
         # calculate the polynomial fit
         polynomial = numpy.polyfit(x_data, y_data, deg=len(x_data) - 1)
 
-        # calculate the central density estimate
-        rho_0_prediction = numpy.exp(numpy.poly1d(polynomial)(numpy.log(T_0)))
+        # use the polynomial fit value(s) to calculate the prediction
+        prediction = numpy.exp(numpy.poly1d(polynomial)(numpy.log(x)))
 
     else:
         # set the exponential fit
-        def exponential_fit(x, coeff=1, exp_coeff=1, const=1):
-            return coeff * numpy.exp(exp_coeff * x) + const
+        def exponential_fit(value, coeff=1, exp_coeff=1, const=1):
+            return coeff * numpy.exp(exp_coeff * value) + const
 
         # calculate the fitting parameters
-        fitting_parameters, __ = curve_fit(exponential_fit, T_0_arr, rho_0_arr)
+        fitting_parameters, __ = curve_fit(exponential_fit, x_arr, y_arr)
         a, b, c = fitting_parameters
 
-        # calculate the central density prediction
-        rho_0_prediction = exponential_fit(T_0, coeff=a, exp_coeff=b, const=c)
+        # use the exponential fit value(s) to calculate the prediction
+        prediction = exponential_fit(x, coeff=a, exp_coeff=b, const=c)
 
-    return rho_0_prediction
+    return prediction
 
 
-def useful_info(error, r, state, precision=3):
+def stellar_info(error, r, state, precision=3):
     """
-    Method to print useful information pertaining to the solved stellar properties.
+    Function to print useful information pertaining to the stellar solution that generated the
+    inputted radius array and stellar state.
+
+    :param error: The luminosity error associated with the stellar solution that generated the
+        radius array and state matrix.
+    :param r: An array of radius values generated by solving the stellar structure equations.
+    :param state: A matrix of state values generated by solving the stellar structure equations.
+    :param precision: The precision used when printing the stellar information. Defaults to 3.
     """
 
     # set the precision of the printed values
