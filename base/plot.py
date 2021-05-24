@@ -1,5 +1,5 @@
 """
-Plotting Module containing functions to plot various graphs in astrophysics.
+Plotting module containing functions to plot various graphs in astrophysics.
 
 :title: plot.py
 
@@ -11,7 +11,6 @@ Plotting Module containing functions to plot various graphs in astrophysics.
 from constants import L_sun, M_sun, r_sun, rho_0_sun, T_0_sun, T_sun
 import matplotlib.pyplot as plt
 import numpy
-from stellar_structure import StellarStructure
 from util import normalize_data
 
 
@@ -28,12 +27,16 @@ def hr_diagram(effect_temps, luminosities):
     """
 
     # normalize the luminosities with the Sun's luminosity
-    for i, star_luminosity in enumerate(luminosities):
-        norm_lumin = star_luminosity / L_sun
-        luminosities[i] = norm_lumin
+    norm_luminosities = normalize_data(
+        in_data=luminosities,
+        norm_values=[L_sun]
+    )
+
+    # set the plot size
+    plt.figure(figsize=(10, 8))
 
     # plot the effective surface temperatures against the stellar luminosities
-    plt.plot(effect_temps, luminosities, color="black", linestyle="solid")
+    plt.plot(effect_temps, norm_luminosities, color="black", linestyle="solid")
 
     # set the labels for the x-axis and y-axis
     plt.xlabel("Effective Surface Temperature (in Kelvin)")
@@ -52,26 +55,32 @@ def hr_diagram(effect_temps, luminosities):
     plt.show()
 
 
-def pressure_contributions_plot(radius, density, temperature):
+def pressure_contributions_plot(stellar_structure, radius, density, temperature):
     """
     Function to plot the total pressure and all pressure contributions.
 
+    :param stellar_structure: A (called) StellarStructure class containing the
+        stellar structure equations.
     :param radius: An array of radius values.
     :param density: An array of density values.
     :param temperature: An array of temperature values.
     """
 
     # calculate the degeneracy pressure
-    deg_pressure = StellarStructure().degeneracy_pressure(density)
+    deg_pressure = stellar_structure.degeneracy_pressure(density)
 
     # calculate the gas pressure
-    gas_pressure = StellarStructure().gas_pressure(density, temperature, mu=StellarStructure().mean_molec_weight())
+    gas_pressure = stellar_structure.gas_pressure(
+        density,
+        temperature,
+        mu=stellar_structure.mean_molec_weight()
+    )
 
     # calculate the photon gas pressure
-    photon_pressure = StellarStructure().photon_pressure(temperature)
+    photon_pressure = stellar_structure.photon_pressure(temperature)
 
     # calculate the total pressure
-    total_pressure = StellarStructure().total_pressure(density, temperature)
+    total_pressure = stellar_structure.total_pressure(density, temperature)
 
     # calculate the surface radius to be used in normalizing the data
     surf_radius = radius[-1]
@@ -79,12 +88,16 @@ def pressure_contributions_plot(radius, density, temperature):
     # calculate the star's central pressure to be used in normalizing the data
     central_pressure = total_pressure[0]
 
-    # normalize the radius and pressures
-    norm_radius, norm_pressures = normalize_data(
-        radius,
-        numpy.array([deg_pressure, gas_pressure, photon_pressure, total_pressure]),
-        radius_norm=surf_radius,
-        state_norm=[central_pressure, central_pressure, central_pressure, central_pressure]
+    # normalize the radius array
+    norm_radius = normalize_data(
+        in_data=numpy.array([radius]),
+        norm_values=[surf_radius]
+    )
+
+    # normalize each pressure component array
+    norm_pressures = normalize_data(
+        in_data=numpy.array([deg_pressure, gas_pressure, photon_pressure, total_pressure]),
+        norm_values=[central_pressure, central_pressure, central_pressure, central_pressure]
     )
 
     # extract the normalized pressures
@@ -96,7 +109,7 @@ def pressure_contributions_plot(radius, density, temperature):
     # set the plot size
     plt.figure(figsize=(10, 8))
 
-    # plot each of the calculated pressures
+    # plot each of the calculated and normalized pressures
     plt.plot(norm_radius, norm_deg_pressure, label="Degeneracy Pressure", color="blue", linestyle="dashed")
     plt.plot(norm_radius, norm_gas_pressure, label="Gas Pressure", color="green", linestyle="dashed")
     plt.plot(norm_radius, norm_photon_pressure, label="Photon Pressure", color="red", linestyle="dashed")
@@ -163,12 +176,16 @@ def stellar_structure_plot(radius, density, temperature, mass, luminosity):
     # also get the star's surface temperature
     surf_temp = temperature[-1]
 
-    # normalize the radius and stellar properties data
-    norm_radius, norm_state = normalize_data(
-        radius,
-        numpy.array([density, temperature, mass, luminosity]),
-        radius_norm=surf_radius,
-        state_norm=[central_density, central_temp, total_mass, total_luminosity]
+    # normalize the radius data
+    norm_radius = normalize_data(
+        in_data=numpy.array([radius]),
+        norm_values=[surf_radius]
+    )
+
+    # normalize the stellar properties data
+    norm_state = normalize_data(
+        in_data=numpy.array([density, temperature, mass, luminosity]),
+        norm_values=[central_density, central_temp, total_mass, total_luminosity]
     )
 
     # extract the necessary datasets from the normalized state variable
@@ -192,7 +209,7 @@ def stellar_structure_plot(radius, density, temperature, mass, luminosity):
     # plot the stellar luminosity against stellar radius
     plt.plot(norm_radius, norm_luminosity, label="Luminosity", color="blue", linestyle="dotted")
 
-    # add annotations including useful stellar properties to add context to the plotted normalized data
+    # add annotations including useful stellar properties to add context
     surface_radius_text = r'$R_{\star, surf} = $' + "{} m = {} ".format(
         format(surf_radius, ".3E"),
         round(surf_radius / r_sun, 3)
