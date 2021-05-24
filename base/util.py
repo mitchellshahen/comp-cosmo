@@ -85,8 +85,8 @@ def normalize_data(in_data=None, norm_values=None):
     in the `norm_values` to normalize each dimensional array.
 
     :param in_data: A numpy ndarray of data to be normalized.
-    :param norm_values: A list of values normalizing each of the dimensional arrays. Must match the size
-        and order of the `in_data` parameter.
+    :param norm_values: A list of values normalizing each of the dimensional arrays. Must match
+        the size and order of the `in_data` parameter.
     :return: A tuple containing two numpy ndarrays: the normalized radii and the normalized states.
     """
 
@@ -105,13 +105,14 @@ def normalize_data(in_data=None, norm_values=None):
 
 def extrapolate(x=None, x_arr=None, y_arr=None, calc_method="", degree=1):
     """
-    Function for using various fitting calculations on a set of x values and y values to extrapolate a y-value
-    corresponding to the inputted x value.
+    Function for using various fitting calculations on a set of x values and y values to
+    extrapolate a y-value corresponding to the inputted x value.
 
     :param x: The value at which the intended extrapolated value corresponds to.
     :param x_arr: An array of x values to be used in the extrapolation calculations.
     :param y_arr: An array of y values to be used in the extrapolation calculations.
-    :param calc_method: A string representing the calculation method for generating an extrapolation prediction.
+    :param calc_method: A string representing the calculation method for generating an
+        extrapolation prediction.
     :param degree: The polynomial degree that is calculated and used for the fitting calculations.
         If degree is `None`, an exponential fit is used instead.
     :return: The y value extrapolated to correspond with the x value parameter.
