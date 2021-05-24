@@ -33,7 +33,8 @@ class Store:
         """
         Constructor class object for the Store class.
 
-        :param data_directory: The path to the directory where data is stored (or is intended to be stored).
+        :param data_directory: The path to the directory where data is stored
+            (or is intended to be stored).
         """
 
         self.data_directory = data_directory
@@ -42,7 +43,8 @@ class Store:
         """
         Method to print useful information about the data store.
 
-        :param verbose: A boolean indicating if information about all the stored data is printed as well.
+        :param verbose: A boolean indicating if information about all the stored data
+            is printed as well.
         """
 
         # print the administrative information
