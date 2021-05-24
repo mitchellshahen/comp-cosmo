@@ -8,9 +8,12 @@ Module to define the stellar structure equations that govern stellar bodies.
 :history: 05/05/2021
 """
 
-from constants import a, c, G, gamma, h_bar, k, m_e, m_p
 import numpy
-import units
+import sys
+sys.path.append("../") # be able to access the base directory
+
+from base.constants import a, c, G, gamma, h_bar, k, m_e, m_p
+import base.units as units
 
 # include the mass fractions for the Sun to be used as defaults
 X_sun = 0.7381
