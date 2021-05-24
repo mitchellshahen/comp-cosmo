@@ -10,38 +10,52 @@ describe a star. Additionally, plots of the stellar structure variables are rend
 """
 
 import numpy
-from plot import hr_diagram, pressure_contributions_plot, stellar_structure_plot
-from solve_stellar import solve_structure
-from stellar_structure import StellarStructure, L_index, M_index, rho_index, T_index
-from store import Store
-import units
-from util import extrapolate
+
+from base.plot import hr_diagram, pressure_contributions_plot, stellar_structure_plot
+from base.solve_stellar import solve_structure
+from base.stellar_structure import StellarStructure, L_index, M_index, rho_index, T_index
+from base.store import Store
+import base.units as units
+from base.util import extrapolate
 
 # specify the set of Stellar Structure Equations to use as well as any modifications
 stellar_structure = StellarStructure()
 
 
-def generate_star():
+def _generate_star():
     """
     Function to perform all the necessary functions to solve and plot the stellar structure
     equations.
     """
 
-    # set the central temperature
-    T_0 = 2e7 * units.K
-    # T_0 = 8.23e6 * units.K
-    # T_0 = 1.5e7 * units.K
+    # set the central temperature by providing a value or using the default
+    temp_input = input(
+        "\nSet the Star's Central Temperature in Kelvin "
+        "(Press [Enter] to Use the Default, 15000000 Kelvin) >>> "
+    )
+    T_0 = float(temp_input) * units.K if len(temp_input) != 0 else 1.5e7 * units.K
 
-    # set the initial central density guess
-    rho_0_guess = 8.0063e4 * units.kg / (units.m ** 3)
-    # rho_0_guess = 5.856e4 * units.kg / (units.m ** 3)
-    # rho_0_guess = 1e5 * units.kg / (units.m ** 3)
+    # set the initial central density guess by providing a value or using the default
+    rho_0_input = input(
+        "\nSet the Star's Central Density in kg/m^3 "
+        "(Press [Enter] to Use the Default, 100000 kg/m^3) >>> "
+    )
+    rho_units = units.kg / (units.m ** 3)
+    rho_0_guess = float(rho_0_input) * rho_units if len(rho_0_input) != 0 else 1e5 * rho_units
 
-    # set the confidence
-    confidence = 0.5
+    # set the confidence by providing a value or using the default
+    conf_input = input(
+        "\nSet the Confidence Level to Use When Solving the Stellar Structure Equations "
+        "(Press [Enter] to Use the Default, 0.5) >>> "
+    )
+    confidence = float(conf_input) if len(conf_input) != 0 else 0.5
 
-    # set the decision of whether or not to save the data
-    save_data = False
+    # set the decision of whether or not to save the data by providing a value or using the default
+    save_input = input(
+        "\nSet Decision of if Data is Saved, [0] for False or [1] for True "
+        "(Press [Enter] to Use the Default, False) >>> "
+    )
+    save_data = bool(int(save_input)) if len(save_input) != 0 else False
 
     # solve the stellar structure equations and acquire the necessary data
     lumin_error, radius_arr, state_matrix = solve_structure(
@@ -62,8 +76,6 @@ def generate_star():
     if save_data:
         Store().save(data=full_data, data_filename="stellar_data.pickle")
 
-    # full_data = Store().get(data_filename="stellar_data.pickle")
-
     # plot all the necessary graphs describing the above generated star
     stellar_structure_plot(
         radius=full_data[0],
@@ -82,25 +94,50 @@ def generate_star():
     )
 
 
-def generate_star_sequence():
+def _generate_star_sequence():
     """
     Function to generate a star sequence: generating several stars and saving only each star's most
     important properties.
     """
 
-    # number of stars to generate
-    N = 50
+    # set the number of stars to generate
+    N_input = input(
+        "\nSet the Number of Stars to Generate (Press [Enter] to Use the Default, 50) >>> "
+    )
+    N = int(N_input) if len(N_input) != 0 else 50
 
-    # initial central temperature to survey
-    T_0_i = 1e5 * units.K
+    # set the initial central temperature to survey
+    T_0_i_input = input(
+        "\nSet the Central Temperature, in Kelvin, of the First Star in the Sequence "
+        "(Press [Enter] to Use the Default, 100000 Kelvin) >>> "
+    )
+    T_0_i = float(T_0_i_input) if len(T_0_i_input) != 0 else 1e5 * units.K
 
-    # final central temperature to survey
-    T_0_f = 1e8 * units.K
+    # set the final central temperature to survey
+    T_0_f_input = input(
+        "\nSet the Central Temperature, in Kelvin, of the First Star in the Sequence "
+        "(Press [Enter] to Use the Default, 100000000 Kelvin) >>> "
+    )
+    T_0_f = float(T_0_f_input) if len(T_0_f_input) != 0 else 1e8 * units.K
+
+    # set the confidence by providing a value or using the default
+    conf_input = input(
+        "\nSet the Confidence Level to Use When Solving the Stellar Structure Equations "
+        "(Press [Enter] to Use the Default, 0.5) >>> "
+    )
+    confidence = float(conf_input) if len(conf_input) != 0 else 0.5
+
+    # set the decision of whether or not to save the data by providing a value or using the default
+    save_input = input(
+        "\nSet Decision of if Data is Saved, [0] for False or [1] for True "
+        "(Press [Enter] to Use the Default, False) >>> "
+    )
+    save_data = bool(int(save_input)) if len(save_input) != 0 else False
 
     # generate an array of temperature values to generate stars with
     all_cen_temp = numpy.linspace(T_0_i, T_0_f, N)
 
-    # execute the solve_structure function for the first star using the default central density guess;
+    # run the solve_structure function for the first star using the default central density guess;
     # this is done to create non-empty arrays of central temperatures and central densities that can
     # be used to predict viable central densities for all the proceeding central temperature values
     print("\nSolving Star 1")
@@ -108,7 +145,7 @@ def generate_star_sequence():
         stellar_structure,
         T_0=T_0_i,
         rho_0_guess=1e4 * units.kg / (units.m ** 3),
-        confidence=0.75
+        confidence=confidence
     )
 
     # create an array to contain all the important properties from each star;
@@ -122,7 +159,8 @@ def generate_star_sequence():
         [first_state_matrix[L_index][-1]] # total luminosities
     ])
 
-    # iterate through every central temperature (after the initial central temperature) generating a star at each value
+    # iterate through every central temperature (after the initial
+    # central temperature) and generate a star at each value
     for i, in_central_temp in enumerate(all_cen_temp[1:]):
         # progress indicator
         print("\nSolving Star {}".format(i + 2))
@@ -137,12 +175,12 @@ def generate_star_sequence():
             degree=1 # use a decent polynomial fit degree parameter to avoid Rank Warnings
         )
 
-        # use the predicted central density to generate the star with central temperature, `in_central_temp`
+        # use the predicted central density to generate the star
         __, radius_arr, state_matrix = solve_structure(
             stellar_structure,
             T_0=in_central_temp,
             rho_0_guess=rho_0_prediction,
-            confidence=0.5
+            confidence=confidence
         )
 
         # create an array of the same shape as `important_properties` to contain the new data
@@ -159,7 +197,8 @@ def generate_star_sequence():
         important_properties = numpy.concatenate((important_properties, new_properties), axis=1)
 
     # save the stellar sequence
-    Store().save(data=important_properties, data_filename="stellar_sequence.pickle")
+    if save_data:
+        Store().save(data=important_properties, data_filename="stellar_sequence.pickle")
 
     # use the stellar sequence to generate a Hertzsprung-Russell diagram
     hr_diagram(
@@ -168,5 +207,31 @@ def generate_star_sequence():
     )
 
 
+def execute():
+    """
+    Function to execute a method of analysis as specified by the user.
+    """
+
+    # create a dictionary of all the supported functions
+    all_functions = {
+        "Generate a Star": [_generate_star, "0"],
+        "Generate a Stellar Sequence": [_generate_star_sequence, "1"]
+    }
+
+    # print all the functions that are included in this module;
+    # Also include a number used to select a function
+    print("\nAll Available Functions:\n")
+    for f_descr in all_functions.keys():
+        print("[{}] {}".format(all_functions[f_descr][1], f_descr))
+
+    # instruct the user to select a function from those listed
+    f_num = input("\nSelect a Function Number >>> ")
+
+    # execute the function corresponding to the selected function number
+    for f_descr in all_functions.keys():
+        if all_functions[f_descr][1] == f_num:
+            all_functions[f_descr][0]()
+
+
 if __name__ == "__main__":
-    generate_star()
+    execute()
