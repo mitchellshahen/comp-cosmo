@@ -37,8 +37,8 @@ class StellarStructure:
         """
         Constructor class object for the StellarStructure class.
 
-        :param X: The mass fraction of hydrogen in the star. Defaults to the hydrogen mass fraction of the Sun.
-        :param Y: The mass fraction of helium in the star. Defaults to the helium mass fraction of the Sun.
+        :param X: The mass fraction of hydrogen in the star. Default is the solar H mass fraction.
+        :param Y: The mass fraction of helium in the star. Default is the solar He mass fraction.
         :param Z: The mass fraction of remaining materials in the star. Defaults to the mass
             fraction of remaining materials in the Sun.
         """
@@ -68,8 +68,8 @@ class StellarStructure:
         :param r_0: The initial radius value used in solving the stellar structure equations.
         :param rho_0: The central density of the star.
         :param T_0: The central temperature of the star.
-        :returns: A numpy ndarray of the initial stellar properties: central density, central temperature,
-            initial mass, initial radiative luminosity, and initial optical density.
+        :returns: A numpy ndarray of the initial stellar properties: central density, central
+            temperature, initial mass, initial radiative luminosity, and initial optical density.
         """
 
         # set the mass contained within a sphere of very small radius
@@ -227,7 +227,7 @@ class StellarStructure:
         """
 
         # calculate the non-relativistic degeneracy pressure
-        pressure_deg = ((3 * numpy.pi ** 2) ** (2 / 3)) * (h_bar ** 2) * ((rho / m_p) ** (5 / 3)) / (5 * m_e)
+        pressure_deg = ((3 * numpy.pi ** 2) ** (2/3)) * (h_bar ** 2) * ((rho / m_p) ** (5/3)) / (5 * m_e)
 
         return pressure_deg
 
@@ -292,7 +292,7 @@ class StellarStructure:
         Method to calculate the temperature due to convective contributions:
             convective temperature = (1 - 1/lambda) * T * G * M * rho / (P * r ** 2)
 
-        :param r: The radius value for which the density, temperature, and cumulative mass correspond.
+        :param r: The radius value for which the density, temperature, and enclosed mass correspond.
         :param rho: The stellar density.
         :param T: The stellar temperature.
         :param M: The cumulative mass contained within a radius, `r`.
@@ -312,7 +312,8 @@ class StellarStructure:
         Method to calculate the temperature due to radiative contributions:
             radiative temperature = 3 * kappa * rho * L / (16 * pi * a * c * T ** 3 * r ** 2)
 
-        :param r: The radius value for which the density, temperature, and cumulative luminosity correspond.
+        :param r: The radius value for which the density, temperature, and cumulative
+            luminosity correspond.
         :param rho: The stellar density.
         :param T: The stellar temperature.
         :param L: The cumulative luminosity radiated by the star, but considering contributions
@@ -361,9 +362,7 @@ class StellarStructure:
         dT_dr = self.temperature_grad(r=r, rho=rho, T=T, M=M, L=L)
 
         # calculate the density gradient
-        density_gradient = -1.0 * (
-            (G * M * rho / (r ** 2)) + (dP_dT * dT_dr)
-        ) / (dP_drho)
+        density_gradient = -1.0 * ((G * M * rho / (r ** 2)) + (dP_dT * dT_dr)) / (dP_drho)
 
         return density_gradient
 
