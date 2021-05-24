@@ -41,7 +41,7 @@ def generate_star():
     confidence = 0.5
 
     # set the decision of whether or not to save the data
-    save_data = True
+    save_data = False
 
     # solve the stellar structure equations and acquire the necessary data
     lumin_error, radius_arr, state_matrix = solve_structure(
@@ -75,6 +75,7 @@ def generate_star():
 
     # plot the pressure and pressure contributions
     pressure_contributions_plot(
+        stellar_structure=stellar_structure,
         radius=full_data[0],
         density=full_data[rho_index + 1],
         temperature=full_data[T_index + 1]
