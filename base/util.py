@@ -79,28 +79,28 @@ def interpolate(in_data=None, index=0.0):
     return interp_data
 
 
-def normalize_data(r, state, radius_norm=1.0, state_norm=None):
+def normalize_data(in_data=None, norm_values=None):
     """
-    Function to normalize the radius values and stellar state values using the inputted radius and
-    stellar state normalization values.
+    Function to normalize an input dataset. Handles multi-dimensional arrays by using values
+    in the `norm_values` to normalize each dimensional array.
 
-    :param r: A numpy ndarray of radius values.
-    :param state: A multi-dimensional matrix of stellar values including density, temperature,
-        mass, luminosity, and optical depth.
-    :param radius_norm: A value to normalize the radius values.
-    :param state_norm: A list of values normalizing each of the state values. Must match the size
-        and order of the `state` parameter.
+    :param in_data: A numpy ndarray of data to be normalized.
+    :param norm_values: A list of values normalizing each of the dimensional arrays. Must match the size
+        and order of the `in_data` parameter.
     :return: A tuple containing two numpy ndarrays: the normalized radii and the normalized states.
     """
 
-    # scale the 1-D radius values by the inputted radius norm
-    r = numpy.array([item / radius_norm for item in r])
+    if in_data.shape[0] == 1:
+        # scale the 1-Dimensional array
+        in_data = numpy.array([item / norm_values[0] for item in in_data])
+        in_data = in_data[0]
 
-    # scale the multi-dimensional state by each inputted state norm value
-    for i, state_arr in enumerate(state):
-        state[i] = numpy.array([item / state_norm[i] for item in state_arr])
+    else:
+        # scale the multi-dimensional input array by each normalization value
+        for i, dim_array in enumerate(in_data):
+            in_data[i] = numpy.array([item / norm_values[i] for item in dim_array])
 
-    return r, state
+    return in_data
 
 
 def extrapolate(x=None, x_arr=None, y_arr=None, calc_method="", degree=1):
