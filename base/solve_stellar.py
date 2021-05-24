@@ -14,7 +14,7 @@ import numpy
 from scipy import integrate
 from stellar_structure import rho_index, T_index, M_index, L_index, tau_index
 import units
-from util import find_zeros, interpolate, normalize_data
+from util import find_zeros, interpolate
 
 
 def get_remaining_optical_depth(stellar_structure, r, state):
