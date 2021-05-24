@@ -8,10 +8,13 @@ Plotting module containing functions to plot various graphs in astrophysics.
 :history: 02/05/2021
 """
 
-from constants import L_sun, M_sun, r_sun, rho_0_sun, T_0_sun, T_sun
 import matplotlib.pyplot as plt
 import numpy
-from util import normalize_data
+import sys
+sys.path.append("../") # be able to access the base directory
+
+from base.constants import L_sun, M_sun, r_sun, rho_0_sun, T_0_sun, T_sun
+from base.util import normalize_data
 
 
 # ---------- # ASTROPHYSICAL PLOTTING FUNCTIONS # ---------- #
@@ -110,12 +113,36 @@ def pressure_contributions_plot(stellar_structure, radius, density, temperature)
     plt.figure(figsize=(10, 8))
 
     # plot each of the calculated and normalized pressures
-    plt.plot(norm_radius, norm_deg_pressure, label="Degeneracy Pressure", color="blue", linestyle="dashed")
-    plt.plot(norm_radius, norm_gas_pressure, label="Gas Pressure", color="green", linestyle="dashed")
-    plt.plot(norm_radius, norm_photon_pressure, label="Photon Pressure", color="red", linestyle="dashed")
-    plt.plot(norm_radius, norm_total_pressure, label="Total Pressure", color="black", linestyle="solid")
+    plt.plot(
+        norm_radius,
+        norm_deg_pressure,
+        label="Degeneracy Pressure",
+        color="blue",
+        linestyle="dashed"
+    )
+    plt.plot(
+        norm_radius,
+        norm_gas_pressure,
+        label="Gas Pressure",
+        color="green",
+        linestyle="dashed"
+    )
+    plt.plot(
+        norm_radius,
+        norm_photon_pressure,
+        label="Photon Pressure",
+        color="red",
+        linestyle="dashed"
+    )
+    plt.plot(
+        norm_radius,
+        norm_total_pressure,
+        label="Total Pressure",
+        color="black",
+        linestyle="solid"
+    )
 
-    # add annotations including useful stellar properties to add context to the plotted normalized data
+    # add annotations including useful stellar properties (adds context to the normalized data)
     degeneracy_pressure_text = r'$P_{deg, c} = $' + "{} Pa".format(
         format(deg_pressure[0], ".3E")
     )
