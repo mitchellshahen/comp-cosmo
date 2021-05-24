@@ -8,7 +8,10 @@ File to set up all necessary universal constants.
 :history: 01/05/2021
 """
 
-import units
+import sys
+sys.path.append("../") # be able to access the base directory
+
+import base.units as units
 
 # ---------- # UNIVERSAL CONSTANTS # ---------- #
 
