@@ -9,12 +9,15 @@ its parameters, and modifying the initial parameters to improve the next trial s
 :history: 07/05/2021
 """
 
-from constants import M_sun, sigma
 import numpy
 from scipy import integrate
-from stellar_structure import rho_index, T_index, M_index, L_index, tau_index
-import units
-from util import find_zeros, interpolate
+import sys
+sys.path.append("../") # be able to access the base directory
+
+from base.constants import M_sun, sigma
+from base.stellar_structure import rho_index, T_index, M_index, L_index, tau_index
+import base.units as units
+from base.util import find_zeros, interpolate
 
 
 def get_remaining_optical_depth(stellar_structure, r, state):
