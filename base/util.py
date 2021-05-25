@@ -90,6 +90,15 @@ def normalize_data(in_data=None, norm_values=None):
     :return: A tuple containing two numpy ndarrays: the normalized radii and the normalized states.
     """
 
+    # if the input data is 1-Dimensional (ie. with shape (XX,)) convert it to a
+    # proper 1-Dimensional array with shape (1, XX)
+    if len(in_data.shape) == 1:
+        in_data = numpy.array([in_data])
+
+    # if the inputted norm_values parameter is only a single value, convert it to a list
+    if not isinstance(norm_values, list):
+        norm_values = list(norm_values)
+
     if in_data.shape[0] == 1:
         # scale the 1-Dimensional array
         in_data = numpy.array([item / norm_values[0] for item in in_data])
