@@ -30,32 +30,45 @@ def _generate_star():
 
     # set the central temperature by providing a value or using the default
     temp_input = input(
-        "\nSet the Star's Central Temperature in Kelvin "
+        "\nSet the Star's Central Temperature, in Kelvin, as a positive non-zero number "
         "(Press [Enter] to Use the Default, 15000000 Kelvin) >>> "
     )
-    T_0 = float(temp_input) * units.K if len(temp_input) != 0 else 1.5e7 * units.K
+    if len(temp_input) != 0:
+        T_0 = (float(temp_input) if float(temp_input) > 0 else 1.5e7) * units.K
+    else:
+        T_0 = 1.5e7 * units.K
 
     # set the initial central density guess by providing a value or using the default
     rho_0_input = input(
-        "\nSet the Star's Central Density in kg/m^3 "
+        "\nSet the Star's Central Density, in kg/m^3, as a positive non-zero number "
         "(Press [Enter] to Use the Default, 100000 kg/m^3) >>> "
     )
-    rho_units = units.kg / (units.m ** 3)
-    rho_0_guess = float(rho_0_input) * rho_units if len(rho_0_input) != 0 else 1e5 * rho_units
+    if len(rho_0_input) != 0:
+        rho_0_guess = (
+            float(rho_0_input) if float(rho_0_input) > 0 else 1e5
+        ) * units.kg / (units.m ** 3)
+    else:
+        rho_0_guess = 1e5 * units.kg / (units.m ** 3)
 
     # set the confidence by providing a value or using the default
     conf_input = input(
-        "\nSet the Confidence Level to Use When Solving the Stellar Structure Equations "
-        "(Press [Enter] to Use the Default, 0.5) >>> "
+        "\nSet the Confidence Level, a number between 0.5 and 1.0, to Use When Solving the "
+        "Stellar Structure Equations (Press [Enter] to Use the Default, 0.5) >>> "
     )
-    confidence = float(conf_input) if len(conf_input) != 0 else 0.5
+    if len(conf_input) != 0:
+        confidence = float(conf_input) if 0.5 <= float(conf_input) < 1.0 else 0.5
+    else:
+        confidence = 0.5
 
     # set the decision of whether or not to save the data by providing a value or using the default
     save_input = input(
         "\nSet Decision of if Data is Saved, [0] for False or [1] for True "
         "(Press [Enter] to Use the Default, False) >>> "
     )
-    save_data = bool(int(save_input)) if len(save_input) != 0 else False
+    if len(save_input) != 0:
+        save_data = bool(int(save_input)) if int(save_input) in [0, 1] else False
+    else:
+        save_data = False
 
     # solve the stellar structure equations and acquire the necessary data
     lumin_error, radius_arr, state_matrix = solve_structure(
@@ -104,35 +117,50 @@ def _generate_star_sequence():
     N_input = input(
         "\nSet the Number of Stars to Generate (Press [Enter] to Use the Default, 50) >>> "
     )
-    N = int(N_input) if len(N_input) != 0 else 50
+    if len(N_input) != 0:
+        N = int(N_input) if int(N_input) > 0 else 50
+    else:
+        N = 50
 
     # set the initial central temperature to survey
     T_0_i_input = input(
         "\nSet the Central Temperature, in Kelvin, of the First Star in the Sequence "
-        "(Press [Enter] to Use the Default, 100000 Kelvin) >>> "
+        "(Press [Enter] to Use the Default, 300000 Kelvin) >>> "
     )
-    T_0_i = float(T_0_i_input) if len(T_0_i_input) != 0 else 1e5 * units.K
+    if len(T_0_i_input) != 0:
+        T_0_i = (float(T_0_i_input) if float(T_0_i_input) > 0 else 3e5) * units.K
+    else:
+        T_0_i = 3e5 * units.K
 
     # set the final central temperature to survey
     T_0_f_input = input(
         "\nSet the Central Temperature, in Kelvin, of the First Star in the Sequence "
-        "(Press [Enter] to Use the Default, 100000000 Kelvin) >>> "
+        "(Press [Enter] to Use the Default, 30000000 Kelvin) >>> "
     )
-    T_0_f = float(T_0_f_input) if len(T_0_f_input) != 0 else 1e8 * units.K
+    if len(T_0_f_input) != 0:
+        T_0_f = (float(T_0_f_input) if float(T_0_f_input) > 0 else 3e7) * units.K
+    else:
+        T_0_f = 3e7 * units.K
 
     # set the confidence by providing a value or using the default
     conf_input = input(
-        "\nSet the Confidence Level to Use When Solving the Stellar Structure Equations "
-        "(Press [Enter] to Use the Default, 0.5) >>> "
+        "\nSet the Confidence Level, a number between 0.5 and 1.0, to Use When Solving the "
+        "Stellar Structure Equations (Press [Enter] to Use the Default, 0.5) >>> "
     )
-    confidence = float(conf_input) if len(conf_input) != 0 else 0.5
+    if len(conf_input) != 0:
+        confidence = float(conf_input) if 0.5 <= float(conf_input) < 1.0 else 0.5
+    else:
+        confidence = 0.5
 
     # set the decision of whether or not to save the data by providing a value or using the default
     save_input = input(
         "\nSet Decision of if Data is Saved, [0] for False or [1] for True "
         "(Press [Enter] to Use the Default, False) >>> "
     )
-    save_data = bool(int(save_input)) if len(save_input) != 0 else False
+    if len(save_input) != 0:
+        save_data = bool(int(save_input)) if int(save_input) in [0, 1] else False
+    else:
+        save_data = False
 
     # generate an array of temperature values to generate stars with
     all_cen_temp = numpy.linspace(T_0_i, T_0_f, N)
@@ -144,7 +172,7 @@ def _generate_star_sequence():
     __, first_radius_arr, first_state_matrix = solve_structure(
         stellar_structure,
         T_0=T_0_i,
-        rho_0_guess=1e4 * units.kg / (units.m ** 3),
+        rho_0_guess=1e5 * units.kg / (units.m ** 3),
         confidence=confidence
     )
 
@@ -200,10 +228,16 @@ def _generate_star_sequence():
     if save_data:
         Store().save(data=important_properties, data_filename="stellar_sequence.pickle")
 
+    # get the surface temperature data
+    surf_temp_data = important_properties[3][:]
+
+    # get the luminosity data
+    luminosity_data = important_properties[5][:]
+
     # use the stellar sequence to generate a Hertzsprung-Russell diagram
     hr_diagram(
-        effect_temps=important_properties[T_index][:],
-        luminosities=important_properties[L_index][:]
+        effect_temps=surf_temp_data,
+        luminosities=luminosity_data
     )
 
 
@@ -230,6 +264,7 @@ def execute():
     # execute the function corresponding to the selected function number
     for f_descr in all_functions.keys():
         if all_functions[f_descr][1] == f_num:
+            print("\nExecuting '{}'...".format(f_descr))
             all_functions[f_descr][0]()
 
 
