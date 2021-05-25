@@ -31,7 +31,7 @@ def hr_diagram(effect_temps, luminosities):
 
     # normalize the luminosities with the Sun's luminosity
     norm_luminosities = normalize_data(
-        in_data=luminosities,
+        in_data=numpy.array([luminosities]),
         norm_values=[L_sun]
     )
 
@@ -47,6 +47,9 @@ def hr_diagram(effect_temps, luminosities):
 
     # invert the x-axis so it is decreasing in temperature going left to right
     plt.gca().invert_xaxis()
+
+    # set the x-axis (effective surface temperatures) to be logarithmic
+    plt.xscale("log")
 
     # set the y-axis (relative luminosities) to be logarithmic
     plt.yscale("log")
