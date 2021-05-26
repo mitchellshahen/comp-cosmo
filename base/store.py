@@ -91,7 +91,7 @@ class Store:
                 [
                     os.path.exists(filepath),
                     os.path.isfile(filepath),
-                    os.path.splitext(filepath) in self.supported_formats
+                    os.path.splitext(filepath)[-1] in self.supported_formats
                 ]
         ):
             raise IOError("Intended data file is not found or is incompatible.")
@@ -169,6 +169,3 @@ class Store:
                 print("No data was provided. Therefore, no data will be saved.")
         else:
             print("Overwrite Permission Denied. Data will not be saved")
-
-
-Store().save(data_filename="stellar_data.pickle")
