@@ -17,6 +17,17 @@ from base.constants import L_sun, M_sun, r_sun, rho_0_sun, T_0_sun, T_sun
 from base.util import normalize_data
 
 
+# ---------- # ANCILLARY PLOTTING FUNCTIONS # ---------- #
+
+def _shade_convective(x_data=None, is_convective_arr=None):
+    # add shading to the convective regions
+    for i, x in enumerate(x_data):
+        if is_convective_arr[i]:
+            # exclude the last value to avoid an IndexError
+            if i != len(x_data) - 1:
+                plt.axvspan(x, x_data[i + 1], facecolor="gray", alpha=0.2)
+
+
 # ---------- # ASTROPHYSICAL PLOTTING FUNCTIONS # ---------- #
 
 def hr_diagram(effect_temps, luminosities):
@@ -185,16 +196,20 @@ def pressure_contributions_plot(stellar_structure, radius, density, temperature)
     plt.show()
 
 
-def stellar_structure_plot(radius, density, temperature, mass, luminosity):
+def stellar_structure_plot(stellar_structure, radius, density, temperature, mass, luminosity):
     """
     Function to plot normalized stellar density, temperature, mass, and luminosity against radius.
 
+    :param stellar_structure: A (called) StellarStructure class containing the
+        stellar structure equations.
     :param radius: An array of radius values.
     :param density: An array of density values.
     :param temperature: An array of temperature values.
     :param mass: An array of mass values.
     :param luminosity: An array of luminosity values.
     """
+
+    # ---------- # NORMALIZING THE INPUT DATASETS # ---------- #
 
     # extract the stellar properties used to normalize the inputted datasets
     surf_radius = radius[-1]
@@ -223,6 +238,27 @@ def stellar_structure_plot(radius, density, temperature, mass, luminosity):
     norm_temperature = norm_state[1]
     norm_mass = norm_state[2]
     norm_luminosity = norm_state[3]
+
+    # ---------- # DETERMINING THE CONVECTIVE REGIONS # ---------- #
+
+    # iterate through the stellar properties obtaining the convective
+    # and radiative temperatures at each radius value
+    is_convective_list = []
+    for i, radius_value in enumerate(radius):
+        is_conv_value = stellar_structure.is_convective(
+            radius_value,
+            density[i],
+            temperature[i],
+            mass[i],
+            luminosity[i]
+        )
+
+        is_convective_list.append(is_conv_value)
+
+    # convert the lists of temperature values to arrays
+    is_convective = numpy.array(is_convective_list)
+
+    # ---------- # PLOTTING FUNCTIONS # ---------- #
 
     # set the plot size
     plt.figure(figsize=(10, 8))
@@ -276,6 +312,9 @@ def stellar_structure_plot(radius, density, temperature, mass, luminosity):
         xy=(0.6, 0.4),
         xytext=(0.6, 0.4),
         textcoords="axes fraction")
+
+    # shade in the areas where convective temperature forces dominate
+    _shade_convective(x_data=norm_radius, is_convective_arr=is_convective)
 
     # set the title
     plt.title("Stellar Structure Plot")
