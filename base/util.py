@@ -9,7 +9,72 @@ Module to contain additional functions used throughout the environment.
 """
 
 import numpy
-from scipy.optimize import curve_fit
+
+
+def extrapolate(x=None, x_arr=None, y_arr=None, calc_method="", degree=1):
+    """
+    Function for using various fitting calculations on a set of x values and y values to
+    extrapolate a y-value corresponding to the inputted x value.
+
+    :param x: The value at which the intended extrapolated value corresponds to.
+    :param x_arr: An array of x values to be used in the extrapolation calculations.
+    :param y_arr: An array of y values to be used in the extrapolation calculations.
+    :param calc_method: A string representing the calculation method for generating an
+        extrapolation prediction.
+    :param degree: The polynomial degree that is calculated and used for the fitting calculations.
+    :return: The y value extrapolated to correspond with the x value parameter.
+    """
+
+    # if any of the inspected x value, x array, or y array inputs are invalid, return None
+    if any(
+        [
+            x is None,
+            len(x_arr) == 0,
+            len(y_arr) == 0
+        ]
+    ):
+        return None
+
+    # ensure the inputted calculation type is supported
+    supported_calc_types = ["polyfit", "logpolyfit"]
+    if calc_method not in supported_calc_types:
+        raise IOError(
+            "ERROR: Invalid Prediction Calculation Method. "
+            "Supported Calculation Methods Include: {}".format(
+                supported_calc_types
+            )
+        )
+
+    # ensure the degree parameter is a non-zero, non-negative integer;
+    # also acceptable is a degree parameter of None, but only when using the exponential fit method
+    if not isinstance(degree, int):
+        raise IOError("The degree parameter must be an integer.")
+    elif degree <= 0:
+        raise IOError("The degree parameter must be positive.")
+
+    if calc_method == "polyfit":
+        # get the polynomial fit valus(s)
+        polynomial = numpy.polyfit(x_arr, y_arr, deg=degree)
+
+        # use the polynomial fit value(s) to calculate the prediction
+        prediction = numpy.poly1d(polynomial)(x)
+
+    elif calc_method == "logpolyfit":
+        # set the x-axis and y-axis datasets used to calculate the polynomial fit
+        x_data = numpy.log(x_arr[-(degree + 1):])
+        y_data = numpy.log(y_arr[-(degree + 1):])
+
+        # calculate the polynomial fit
+        polynomial = numpy.polyfit(x_data, y_data, deg=len(x_data) - 1)
+
+        # use the polynomial fit value(s) to calculate the prediction
+        prediction = numpy.exp(numpy.poly1d(polynomial)(numpy.log(x)))
+
+    else:
+        print("ERROR: Invalid Extrapolation Calculation Method.")
+        prediction = None
+
+    return prediction
 
 
 def find_zeros(in_data=None, find_first=True):
@@ -21,6 +86,14 @@ def find_zeros(in_data=None, find_first=True):
     :param find_first: A boolean indicating if only the first instance of a zero is outputted.
     :return: An array containing the indices, as floating point values, where sign flips occur.
     """
+
+    # if the input dataset is None, return None
+    if in_data is None:
+        return None
+
+    # if the input data has shape (1, XX), extract the first element giving an array of shape (XX,)
+    if len(in_data.shape) == 2:
+        in_data = in_data[0]
 
     # convert the data to True or False values depending on whether or not the data is negative
     bool_arr = numpy.signbit(in_data)
@@ -47,7 +120,10 @@ def find_zeros(in_data=None, find_first=True):
 
     # if find first is True, cut the zeros array to just the first value
     if find_first:
-        out_zeros = out_zeros[0]
+        if out_zeros.shape[1] != 0:
+            out_zeros = out_zeros[0]
+        else:
+            out_zeros = None
 
     return out_zeros
 
@@ -110,81 +186,3 @@ def normalize_data(in_data=None, norm_values=None):
             in_data[i] = numpy.array([item / norm_values[i] for item in dim_array])
 
     return in_data
-
-
-def extrapolate(x=None, x_arr=None, y_arr=None, calc_method="", degree=1):
-    """
-    Function for using various fitting calculations on a set of x values and y values to
-    extrapolate a y-value corresponding to the inputted x value.
-
-    :param x: The value at which the intended extrapolated value corresponds to.
-    :param x_arr: An array of x values to be used in the extrapolation calculations.
-    :param y_arr: An array of y values to be used in the extrapolation calculations.
-    :param calc_method: A string representing the calculation method for generating an
-        extrapolation prediction.
-    :param degree: The polynomial degree that is calculated and used for the fitting calculations.
-        If degree is `None`, an exponential fit is used instead.
-    :return: The y value extrapolated to correspond with the x value parameter.
-    """
-
-    # if any of the inspected x value, x array, or y array inputs are invalid, return None
-    if any(
-        [
-            x is None,
-            len(x_arr) == 0,
-            len(y_arr) == 0
-        ]
-    ):
-        return None
-
-    # ensure the inputted calculation type is supported
-    supported_calc_types = ["polyfit", "logpolyfit", "expfit"]
-    if calc_method not in supported_calc_types:
-        raise IOError(
-            "ERROR: Invalid Prediction Calculation Method. "
-            "Supported Calculation Methods Include: {}".format(
-                supported_calc_types
-            )
-        )
-
-    # ensure the degree parameter is a non-zero, non-negative integer;
-    # also acceptable is a degree parameter of None, but only when using the exponential fit method
-    if not isinstance(degree, int):
-        if degree is None:
-            calc_method = "exp_fit"
-        else:
-            raise IOError("The degree parameter must be an integer.")
-    elif degree <= 0:
-        raise IOError("The degree parameter must be positive.")
-
-    if calc_method == "polyfit":
-        # get the polynomial fit valus(s)
-        polynomial = numpy.polyfit(x_arr, y_arr, deg=degree)
-
-        # use the polynomial fit value(s) to calculate the prediction
-        prediction = numpy.poly1d(polynomial)(x)
-
-    elif calc_method == "logpolyfit":
-        # set the x-axis and y-axis datasets used to calculate the polynomial fit
-        x_data = numpy.log(x_arr[-(degree + 1):])
-        y_data = numpy.log(y_arr[-(degree + 1):])
-
-        # calculate the polynomial fit
-        polynomial = numpy.polyfit(x_data, y_data, deg=len(x_data) - 1)
-
-        # use the polynomial fit value(s) to calculate the prediction
-        prediction = numpy.exp(numpy.poly1d(polynomial)(numpy.log(x)))
-
-    else:
-        # set the exponential fit
-        def exponential_fit(value, coeff=1, exp_coeff=1, const=1):
-            return coeff * numpy.exp(exp_coeff * value) + const
-
-        # calculate the fitting parameters
-        fitting_parameters, __ = curve_fit(exponential_fit, x_arr, y_arr)
-        a, b, c = fitting_parameters
-
-        # use the exponential fit value(s) to calculate the prediction
-        prediction = exponential_fit(x, coeff=a, exp_coeff=b, const=c)
-
-    return prediction
