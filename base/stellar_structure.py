@@ -178,7 +178,7 @@ class StellarStructure:
         :returns: The mean molecular weight.
         """
 
-        mu_total = (2 * self.X + 0.75 * self.Y + 0.5 * self.Z) ** -1
+        mu_total = (2 * self.X + 0.75 * self.Y + 0.5 * self.Z) ** (-1)
 
         return mu_total
 
@@ -328,6 +328,29 @@ class StellarStructure:
         T_radiative = 3 * opacity * rho * L / (16 * numpy.pi * a * c * (T ** 3) * (r ** 2))
 
         return T_radiative
+
+    def is_convective(self, r, rho, T, M, L):
+        """
+        Method to determine if the dominant temperature contributor at the inputted radius value is
+        convective forces.
+
+        :param r: The radius value at which the temperature contributions are being surveyed.
+        :param rho: The density at `r`.
+        :param T: The temperature at `r`.
+        :param M: The total mass contained within `r`.
+        :param L: The cumulative luminosity at `r`.
+        :return: True if the dominant temperature contributor is convection, otherwise False.
+        """
+
+        # get the convective temperature value at `r`
+        T_conv_value = self.temp_convective(r=r, rho=rho, T=T, M=M)
+
+        # get the radiative temperature value at `r`
+        T_rad_value = self.temp_radiative(r=r, rho=rho, T=T, L=L)
+
+        is_conv_bool = -1.0 * T_conv_value >= -1.0 * T_rad_value
+
+        return is_conv_bool
 
     # ---------- # DIFFERENTIAL EQUATIONS # ---------- #
 
