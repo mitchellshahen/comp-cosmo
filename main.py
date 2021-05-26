@@ -91,6 +91,7 @@ def _generate_star():
 
     # plot all the necessary graphs describing the above generated star
     stellar_structure_plot(
+        stellar_structure=stellar_structure,
         radius=full_data[0],
         density=full_data[rho_index + 1],
         temperature=full_data[T_index + 1],
@@ -259,7 +260,7 @@ def execute():
         print("[{}] {}".format(all_functions[f_descr][1], f_descr))
 
     # instruct the user to select a function from those listed
-    f_num = input("\nSelect a Function Number >>> ")
+    f_num = input("\nSelect a Function Number (Press [Enter] to Exit) >>> ")
 
     # execute the function corresponding to the selected function number
     for f_descr in all_functions.keys():
