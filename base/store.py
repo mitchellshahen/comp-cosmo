@@ -8,6 +8,7 @@ Module to define methods for storing, generating, converting, and acquiring stor
 :history: 02/05/2021
 """
 
+import json
 import os
 import pickle
 
@@ -37,6 +38,7 @@ class Store:
             (or is intended to be stored).
         """
 
+        self.supported_formats = [".json", ".pickle", ".txt"]
         self.data_directory = data_directory
 
     def admin(self, verbose=False):
@@ -84,19 +86,31 @@ class Store:
         # construct the full filepath
         filepath = os.path.join(self.data_directory, data_filename)
 
-        # ensure the intended data file exists and is a pickle file
+        # ensure that the intended data file exists and is of a supported file format
         if not all(
                 [
                     os.path.exists(filepath),
                     os.path.isfile(filepath),
-                    filepath.split(".")[-1] == "pickle"
+                    os.path.splitext(filepath) in self.supported_formats
                 ]
         ):
             raise IOError("Intended data file is not found or is incompatible.")
 
-        # open the intended file and extract the data
-        with open(filepath, 'rb') as open_file:
-            data = pickle.load(open_file)
+        # determine the type of file that is requested (ie. it's format)
+        extension = os.path.splitext(filepath)[-1]
+
+        if extension == ".pickle":
+            # open the intended file and extract the data using the `pickle` package
+            with open(filepath, 'rb') as open_file:
+                data = pickle.load(open_file)
+        elif extension == ".json":
+            # open the intended file and extract the data using the built-in `json` package
+            with open(filepath) as open_file:
+                data = json.load(open_file)
+        elif extension == ".txt":
+            # open the intended file and extract the data using the built-in .read() method
+            with open(filepath) as open_file:
+                data = open_file.read()
 
         return data
 
@@ -108,28 +122,53 @@ class Store:
         :param data_filename: The name of the file to contain the inputted data.
         """
 
+        # acquire the full path to the intended data file
         filepath = os.path.join(self.data_directory, data_filename)
 
-        # ensure the intended data file is a pickle file
-        if os.path.splitext(filepath)[-1] != ".pickle":
-            print("Intended data file will be saved as a pickle file.")
-            filepath = filepath.replace(os.path.splitext(filepath)[-1], ".pickle")
+        # ensure the intended data file is of a supported file format
+        extension = os.path.splitext(filepath)[-1]
+        if extension not in self.supported_formats:
+            print(
+                "The provided filename indicates that the data is intended to be saved "
+                "as an incompatible file format, '{}'. Instead, the data will be saved "
+                "as a pickle file (with a `.pickle` extension).".format(extension)
+            )
+            # replace the filepath's old, incompatible extension with `.pickle`
+            filepath = filepath.replace(extension, ".pickle")
+            extension = ".pickle"
 
         # ensure the intended data file will not overwrite any existing files
-        basename = os.path.splitext(filepath.split("\\")[-1])[0]
         if os.path.exists(filepath):
-            # in the event of an overwrite, ask if the data file should be overwritten
-            print(
-                "The intended data file, {}, already exists "
-                "in the selected directory.".format(basename)
-            )
+            # include that the initial saving process was not done cleanly (possible overwrite)
             clean = False
+
+            # in the event of an overwrite, ask the user if the data file should be overwritten
+            print("The intended data file already exists in the selected directory.")
             overwrite = input("Overwrite? [Y], N >>> ").lower() in ["y", "yes", ""]
         else:
+            # include that the initial saving process was performed cleanly
             clean = True
+
+            # include that overwriting is allowed (as there is nothing being overwritten)
             overwrite = True
 
         if overwrite or clean:
-            # open the intended data file and save the data
-            with open(filepath, 'wb') as open_file:
-                pickle.dump(data, open_file, protocol=pickle.HIGHEST_PROTOCOL)
+            # ensure data is provided to be saved, otherwise nothing will happen
+            if data is not None:
+                # save the data using a method that is dependent on the data format
+                if extension == ".pickle":
+                    with open(filepath, 'wb') as open_file:
+                        pickle.dump(data, open_file, protocol=pickle.HIGHEST_PROTOCOL)
+                elif extension == ".json":
+                    with open(filepath, "w") as open_file:
+                        json.dump(data, open_file)
+                elif extension == ".txt":
+                    with open(filepath, "w") as open_file:
+                        open_file.write(data)
+            else:
+                print("No data was provided. Therefore, no data will be saved.")
+        else:
+            print("Overwrite Permission Denied. Data will not be saved")
+
+
+Store().save(data_filename="stellar_data.pickle")
