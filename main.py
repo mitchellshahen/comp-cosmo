@@ -11,7 +11,13 @@ describe a star. Additionally, plots of the stellar structure variables are rend
 
 import numpy
 
-from base.plot import hr_diagram, pressure_contributions_plot, stellar_structure_plot
+from base.plot import (
+    hr_diagram,
+    luminosity_contributions_plot,
+    opacity_contributions_plot,
+    pressure_contributions_plot,
+    stellar_structure_plot
+)
 from base.solve_stellar import solve_structure
 from base.stellar_structure import StellarStructure, L_index, M_index, rho_index, T_index
 from base.store import Store
@@ -101,6 +107,22 @@ def _generate_star():
 
     # plot the pressure and pressure contributions
     pressure_contributions_plot(
+        stellar_structure=stellar_structure,
+        radius=full_data[0],
+        density=full_data[rho_index + 1],
+        temperature=full_data[T_index + 1]
+    )
+
+    # plot the luminosity contributions
+    luminosity_contributions_plot(
+        stellar_structure=stellar_structure,
+        radius=full_data[0],
+        density=full_data[rho_index + 1],
+        temperature=full_data[T_index + 1]
+    )
+
+    # plot the log of the opacity contributions
+    opacity_contributions_plot(
         stellar_structure=stellar_structure,
         radius=full_data[0],
         density=full_data[rho_index + 1],
