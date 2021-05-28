@@ -186,7 +186,15 @@ def trial_solution(
 
 
 def bisection_method(
-        stellar_structure, T_0, rho_0_guess, confidence, rho_0_min, rho_0_max, rho_0_tol, rtol, optical_depth_threshold
+        stellar_structure,
+        T_0,
+        rho_0_guess,
+        confidence,
+        rho_0_min,
+        rho_0_max,
+        rho_0_tol,
+        rtol,
+        optical_depth_threshold
 ):
     """
     Method to execute the bisection method with the notion of a confidence value.
@@ -204,10 +212,10 @@ def bisection_method(
     :return: The optimal central density guess.
     """
 
-    # set up an output central density and luminosity error to contain the last valid central density estimate and
-    # its corresponding luminosity error; if an error occurs, return the last valid central density estimate
+    # set up an output central density and luminosity error to contain the last valid central
+    # density estimate and its corresponding luminosity error; if an error occurs, return the
+    # last valid central density estimate
     output_rho_0 = 0
-    L_error_guess = 0
 
     # try to perform the necessary bisection method calculations for as long as possible until
     # convergence is met or an error occurs
@@ -223,9 +231,9 @@ def bisection_method(
             rtol=rtol
         )
 
-        # upon completing the initial trial solution successfully, replace the central density and luminosity error
+        # upon completing the initial trial solution successfully,
+        # replace the central density and luminosity error
         output_rho_0 = rho_0_guess
-        L_error_guess = L_error_guess
 
         # if using the input central density guess resulted in no luminosity error, return the
         # luminosity error, radius values, and state values from using the density guess
@@ -274,8 +282,8 @@ def bisection_method(
             if L_error_max == 0:
                 return rho_0_max
 
-            # if the intended zero luminosity error is between the maximum and guess densities, set the
-            # lower and upper central densities as the maximum and guess densities and set the biases
+            # if the intended zero luminosity error is between the max and guess densities, set the
+            # lower and upper central densities as the max and guess densities and set the biases
             if L_error_max < 0 < L_error_guess:
                 rho_0_low, rho_0_high = rho_0_max, rho_0_guess
                 bias_high = True
@@ -285,33 +293,16 @@ def bisection_method(
                 bias_low = True
                 bias_high = False
             else:
-                # if the central density that gives no error lies outside the density constraints,
-                # re-run this function using larger density contraints
-                print(
-                    "Retrying with larger central density interval for a central temperature "
-                    "of {} Kelvin".format(T_0)
-                )
+                # if the boundary is not found, return None indicating that the optimal central
+                # density value is beyond the interval used in this method
+                return None
 
-                # set confidence to be much higher since we know that the other
-                # boundary will be even further from the guess
-                return solve_structure(
-                    stellar_structure,
-                    T_0,
-                    rho_0_guess=rho_0_guess,
-                    confidence=(confidence + 4) / 5,
-                    rho_0_min=rho_0_min / 1000,
-                    rho_0_max=1000 * rho_0_max,
-                    rho_0_tol=rho_0_tol,
-                    rtol=rtol,
-                    optical_depth_threshold=optical_depth_threshold
-                )
-
-        # ---------- # USE THE BIASES AND CONFIDENCE TO IMPROVE THE CENTRAL DENSITY GUESS # ---------- #
+        # ---------- # IMPROVE THE CENTRAL DENSITY GUESS # ---------- #
 
         # continue to increase the precision until the central density tolerance is met
         while numpy.abs(rho_0_high - rho_0_low) / 2 > rho_0_tol:
-            # if the bias is favouring the lower bound, assign the central density guess using the upper
-            # and lower density bounds with the confidence assigned to the lower density bound
+            # if the bias is favouring the lower bound, assign the central density guess using the
+            # upper and lower density bounds with the confidence assigned to the lower density bound
             if bias_low:
                 # assign the confidence to the lower density bound
                 rho_0_guess = confidence * rho_0_low + (1 - confidence) * rho_0_high
@@ -333,7 +324,6 @@ def bisection_method(
                 # upon completing the bias low trial solution successfully,
                 # replace the central density and luminosity error
                 output_rho_0 = rho_0_guess
-                L_error_guess = L_error_guess
 
                 # check the luminosity error of the new central density guess and assign the
                 # upper and lower densities accordingly
@@ -341,12 +331,12 @@ def bisection_method(
                     return rho_0_guess
                 if L_error_guess < 0:
                     rho_0_low = rho_0_guess
-                    bias_low = False  # ignore initial guess bias since it is no longer the low endpoint
+                    bias_low = False # ignore initial guess bias since its not the low endpoint
                 elif L_error_guess > 0:
                     rho_0_high = rho_0_guess
 
-            # if the bias is favouring the upper bound, assign the central density guess using the upper
-            # and lower density bounds with the confidence assigned to the upper density bound
+            # if the bias is favouring the upper bound, assign the central density guess using the
+            # upper and lower density bounds with the confidence assigned to the upper density bound
             elif bias_high:
                 # assign the confidence to the upper density bound
                 rho_0_guess = (1 - confidence) * rho_0_low + confidence * rho_0_high
@@ -368,7 +358,6 @@ def bisection_method(
                 # upon completing the bias high trial solution successfully,
                 # replace the central density and luminosity error
                 output_rho_0 = rho_0_guess
-                L_error_guess = L_error_guess
 
                 # check the luminosity error of the new central density guess and assign the
                 # upper and lower densities accordingly
@@ -378,12 +367,12 @@ def bisection_method(
                     rho_0_low = rho_0_guess
                 elif L_error_guess > 0:
                     rho_0_high = rho_0_guess
-                    bias_high = False # ignore initial guess bias since it's no longer the high endpoint
+                    bias_high = False # ignore initial guess bias since its not the high endpoint
 
             # if the re-calculated luminosity error has flipped sign in a previous iteration, modify
             # the central density guess to be the midpoint between the upper and lower bounds
             else:
-                # assign the central density guess as the midpoint between the upper and lower bounds
+                # set the central density guess as the midpoint between the upper and lower bounds
                 rho_0_guess = (rho_0_low + rho_0_high) / 2
 
                 # check the numerical precision
@@ -403,7 +392,6 @@ def bisection_method(
                 # upon completing the midpoint trial solution successfully,
                 # replace the central density and luminosity error
                 output_rho_0 = rho_0_guess
-                L_error_guess = L_error_guess
 
                 # check the luminosity error of the new central density guess and assign the
                 # upper and lower densities accordingly
@@ -414,40 +402,40 @@ def bisection_method(
                 elif L_error_guess > 0:
                     rho_0_high = rho_0_guess
 
-        # if no ideal error was obtained, output the midpoint between the upper and lower density bounds
+        # if no ideal error was obtained, output the midpoint central density
         output_rho_0 = (rho_0_low + rho_0_high) / 2
 
     except ArithmeticError as error_message:
         # print that an error occurred forcing the last used valid central density was used
-        print("Attempting to use a central density guess, {}, resulted in the following error:".format(output_rho_0))
+        print(
+            "Attempting to use a central density, {}, resulted in the following error:".format(
+                output_rho_0
+            )
+        )
         print(error_message)
 
         # check that at least one central density solution calculation executed without error,
-        # if not re-run this function with a modified initial central density
-        if any(
-            [
-                output_rho_0 == 0,
-                L_error_guess == 0
-            ]
-        ):
+        # if not, re-run this function with a modified initial central density
+        if output_rho_0 == 0:
             print(
-                "The above error occurred when attempting to use the initial central density guess. The erroneous "
-                "central density guess will be modified by 5% and the bisection method will be executed again with "
-                "the modified central density guess and a lower confidence value."
+                "The above error occurred in attempting to use the initial central density guess. "
+                "The erroneous central density guess will be modified by 5% and the bisection "
+                "method will be executed again with the modified central density guess and a lower "
+                "confidence value."
             )
 
             # set the new, modified central density guess by varying the original guess by 5%
             mod_rho_0_guess = 1.05 * rho_0_guess
 
             # additionally, lower the confidence
-            mod_confidence = confidence - ((confidence - 0.5) / 4)
+            lower_confidence = confidence - ((confidence - 0.5) / 2)
 
             # re-run the bisection method
             return bisection_method(
                 stellar_structure,
                 T_0,
                 mod_rho_0_guess,
-                mod_confidence,
+                lower_confidence,
                 rho_0_min,
                 rho_0_max,
                 rho_0_tol,
@@ -455,9 +443,12 @@ def bisection_method(
                 optical_depth_threshold
             )
         else:
-            print("The last valid central density guess will be used to generate the stellar equation solution.")
+            print(
+                "The most recent validated central density guess will "
+                "be used to generate the stellar equation solution."
+            )
 
-    return output_rho_0, L_error_guess
+    return output_rho_0
 
 
 def solve_structure(
@@ -505,7 +496,8 @@ def solve_structure(
     if confidence >= 1:
         raise IOError("Confidence must be less than 1!")
 
-    rho_0, L_error_guess = bisection_method(
+    # acquire the the central density estimate result from the bisection method
+    rho_0 = bisection_method(
         stellar_structure,
         T_0,
         rho_0_guess,
@@ -516,6 +508,33 @@ def solve_structure(
         rtol,
         optical_depth_threshold
     )
+
+    # if the bisection method returned `None`, the interval provided was too small;
+    # therefore, `solve_structure` is to be run again with a larger bisection interval
+    if rho_0 is None:
+        # print a message indicating that the central density interval was too narrow
+        print(
+            "Retrying with larger central density interval for a central temperature "
+            "of {} Kelvin".format(T_0)
+        )
+
+        # set a higher confidence level as we know the optimal central density
+        # value lies outside the previously used density constraints
+        higher_confidence = confidence + ((1.0 - confidence) / 2)
+
+        # re-run the solve structure function with a larger central
+        # density interval and improved confidence level
+        return solve_structure(
+            stellar_structure,
+            T_0,
+            rho_0_guess=rho_0_guess,
+            confidence=higher_confidence,
+            rho_0_min=rho_0_min / 1000,
+            rho_0_max=1000 * rho_0_max,
+            rho_0_tol=rho_0_tol,
+            rtol=rtol,
+            optical_depth_threshold=optical_depth_threshold
+        )
 
     # using the final central density value, generate the final stellar structure solution
     final_error, final_r, final_state = trial_solution(
@@ -529,10 +548,10 @@ def solve_structure(
     # double check the final error
     if numpy.abs(final_error) > 1000:
         # increase the confidence in the central density guess
-        higher_accuracy = confidence + ((1.0 - confidence) / 4)
+        higher_accuracy = confidence + ((1.0 - confidence) / 2)
         print(
-            "Solution failed to converge. Retrying stellar equation solution for central temperature, "
-            "T = {} Kelvin, with higher accuracy: {} --> {}".format(T_0, confidence, higher_accuracy)
+            "Solution failed to converge. Retrying stellar solution for central temperature, T "
+            "= {} Kelvin, with higher accuracy: {} --> {}".format(T_0, confidence, higher_accuracy)
         )
         return solve_structure(
             stellar_structure,

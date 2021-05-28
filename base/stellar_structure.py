@@ -37,8 +37,8 @@ class StellarStructure:
         """
         Constructor class object for the StellarStructure class.
 
-        :param X: The mass fraction of hydrogen in the star. Defaults to the hydrogen mass fraction of the Sun.
-        :param Y: The mass fraction of helium in the star. Defaults to the helium mass fraction of the Sun.
+        :param X: The mass fraction of hydrogen in the star. Default is the solar H mass fraction.
+        :param Y: The mass fraction of helium in the star. Default is the solar He mass fraction.
         :param Z: The mass fraction of remaining materials in the star. Defaults to the mass
             fraction of remaining materials in the Sun.
         """
@@ -68,8 +68,8 @@ class StellarStructure:
         :param r_0: The initial radius value used in solving the stellar structure equations.
         :param rho_0: The central density of the star.
         :param T_0: The central temperature of the star.
-        :returns: A numpy ndarray of the initial stellar properties: central density, central temperature,
-            initial mass, initial radiative luminosity, and initial optical density.
+        :returns: A numpy ndarray of the initial stellar properties: central density, central
+            temperature, initial mass, initial radiative luminosity, and initial optical density.
         """
 
         # set the mass contained within a sphere of very small radius
@@ -123,7 +123,7 @@ class StellarStructure:
         dM_dr = self.mass_continuity(r=r, rho=rho)
 
         # get the luminosity derivative
-        dL_dr = self.energy_equation(r=r, rho=rho, T=T)
+        dL_dr = self.energy_equation(r=r, rho=rho, T=T, energy_gen=None)
 
         # get the optical depth derivative
         dtau_dr = self.optical_depth_equation(rho=rho, T=T)
@@ -135,13 +135,34 @@ class StellarStructure:
 
     # ---------- # ANCILLARY CONSTANTS # ---------- #
 
-    def energy_gen_rate(self, rho, T, X_cno=None):
+    def pp_chain_energy(self, rho, T):
         """
-        Method to calculate the total energy generation rate from the PP-chain and the CNO cycle.
+        Method to calculate the energy generation rate exclusively from the PP-chain.
+
+        :param rho: The stellar density.
+        :param T: The stellar temperature.
+        :return: The energy generation rate from the PP-chain.
+        """
+
+        # set the scaled density value
+        rho_5 = rho / (10 ** 5)
+
+        # set the scaled temperature value
+        T_6 = T / (10 ** 6)
+
+        # calculate the energy generation rate from the PP-chain
+        epsilon_pp = (1.07e-7 * (units.W / units.kg)) * rho_5 * (self.X ** 2) * (T_6 ** 4)
+
+        return epsilon_pp
+
+    def cno_cycle_energy(self, rho, T, X_cno=None):
+        """
+        Method to calculate the energy generation rate exclusively from the CNO cycle.
 
         :param rho: The stellar density.
         :param T: The stellar temperature.
         :param X_cno: The mass fraction of hydrogen due to the CNO cycle.
+        :return: The energy generation rate from the CNO cycle.
         """
 
         # set the CNO abundance value
@@ -160,11 +181,25 @@ class StellarStructure:
         # set the scaled temperature value
         T_6 = T / (10 ** 6)
 
-        # calculate the energy generation rate from the PP-chain
-        epsilon_pp = (1.07e-7 * (units.W / units.kg)) * rho_5 * (self.X ** 2) * (T_6 ** 4)
-
         # calculate the energy generate rate from the CNO cycle
         epsilon_cno = (8.24e-26 * (units.W / units.kg)) * rho_5 * self.X * X_cno * (T_6 ** 19.9)
+
+        return epsilon_cno
+
+    def energy_gen_rate(self, rho, T, X_cno=None):
+        """
+        Method to calculate the total energy generation rate from the PP-chain and the CNO cycle.
+
+        :param rho: The stellar density.
+        :param T: The stellar temperature.
+        :param X_cno: The mass fraction of hydrogen due to the CNO cycle.
+        :return: The total energy generation rate.
+        """
+
+        epsilon_pp = self.pp_chain_energy(rho=rho, T=T)
+
+        # calculate the energy generate rate from the CNO cycle
+        epsilon_cno = self.cno_cycle_energy(rho=rho, T=T, X_cno=X_cno)
 
         # calculate the total energy generate rate
         epsilon_total = epsilon_pp + epsilon_cno
@@ -178,9 +213,58 @@ class StellarStructure:
         :returns: The mean molecular weight.
         """
 
-        mu_total = (2 * self.X + 0.75 * self.Y + 0.5 * self.Z) ** -1
+        mu_total = (2 * self.X + 0.75 * self.Y + 0.5 * self.Z) ** (-1)
 
         return mu_total
+
+    def opacity_e_scatter(self):
+        """
+        Method to calculate the opacity from electron scattering.
+
+        :return: The electron scattering opacity.
+        """
+
+        # calculate the mean opacity from electron scattering
+        kappa_es_coeff = 0.02 * (units.m ** 2 / units.kg)
+        kappa_es = kappa_es_coeff * (1 + self.X)
+
+        return kappa_es
+
+    def opacity_ff_scatter(self, rho, T):
+        """
+        Method to calculate the opacity from free-free scattering.
+
+        :param rho: The stellar density.
+        :param T: The stellar temperature.
+        :return: The free-free scattering opacity.
+        """
+
+        # set the scaled density value
+        rho_3 = rho / (10 ** 3)
+
+        # calculate the mean opacity from free-free scattering
+        kappa_ff_coeff = 1.0e24 * (units.m ** 2 / units.kg)
+        kappa_ff = kappa_ff_coeff * (self.Z + 0.0001) * (rho_3 ** 0.7) * (T ** (-7 / 2))
+
+        return kappa_ff
+
+    def opacity_hm_scatter(self, rho, T):
+        """
+        Method to calculate the opacity from H-minus scattering.
+
+        :param rho: The stellar density.
+        :param T: The stellar temperature.
+        :return: The H-minus scattering opacity.
+        """
+
+        # set the scaled density value
+        rho_3 = rho / (10 ** 3)
+
+        # calculate the mean opacity from H-minus scattering
+        kappa_hm_coeff = 2.5e-32 * (units.m ** 2 / units.kg)
+        kappa_hm = kappa_hm_coeff * (self.Z / 0.02) * (rho_3 ** 0.5) * (T ** 9)
+
+        return kappa_hm
 
     def mean_opacity(self, rho, T):
         """
@@ -194,20 +278,14 @@ class StellarStructure:
         :returns: The Rossland mean opacity.
         """
 
-        # set the scaled density value
-        rho_3 = rho / (10 ** 3)
-
         # calculate the mean opacity from electron scattering
-        kappa_es_coeff = 0.02 * (units.m ** 2 / units.kg)
-        kappa_es = kappa_es_coeff * (1 + self.X)
+        kappa_es = self.opacity_e_scatter()
 
         # calculate the mean opacity from free-free scattering
-        kappa_ff_coeff = 1.0e24 * (units.m ** 2 / units.kg)
-        kappa_ff = kappa_ff_coeff * (self.Z + 0.0001) * (rho_3 ** 0.7) * (T ** (-7/2))
+        kappa_ff = self.opacity_ff_scatter(rho=rho, T=T)
 
         # calculate the mean opacity from H-minus scattering
-        kappa_hm_coeff = 2.5e-32 * (units.m ** 2 / units.kg)
-        kappa_hm = kappa_hm_coeff * (self.Z / 0.02) * (rho_3 ** 0.5) * (T ** 9)
+        kappa_hm = self.opacity_hm_scatter(rho=rho, T=T)
 
         # calculate the total mean opacity
         kappa_total = ((1 / kappa_hm) + (1 / max(kappa_es, kappa_ff))) ** (-1)
@@ -227,7 +305,7 @@ class StellarStructure:
         """
 
         # calculate the non-relativistic degeneracy pressure
-        pressure_deg = ((3 * numpy.pi ** 2) ** (2 / 3)) * (h_bar ** 2) * ((rho / m_p) ** (5 / 3)) / (5 * m_e)
+        pressure_deg = ((3 * numpy.pi ** 2) ** (2/3)) * (h_bar ** 2) * ((rho / m_p) ** (5/3)) / (5 * m_e)
 
         return pressure_deg
 
@@ -274,13 +352,13 @@ class StellarStructure:
         """
 
         # calculate the non-relativistic degeneracy pressure
-        pressure_deg = self.degeneracy_pressure(rho)
+        pressure_deg = self.degeneracy_pressure(rho=rho)
 
         # calculate the pressure generated by ideal gases
-        pressure_gas = self.gas_pressure(rho, T, mu=self.mean_molec_weight())
+        pressure_gas = self.gas_pressure(rho=rho, T=T, mu=self.mean_molec_weight())
 
         # calculate the photon gas pressure
-        pressure_photon = self.photon_pressure(T)
+        pressure_photon = self.photon_pressure(T=T)
 
         # calculate the total pressure as the sum of all the pressure components
         total_pressure = pressure_deg + pressure_gas + pressure_photon
@@ -292,7 +370,7 @@ class StellarStructure:
         Method to calculate the temperature due to convective contributions:
             convective temperature = (1 - 1/lambda) * T * G * M * rho / (P * r ** 2)
 
-        :param r: The radius value for which the density, temperature, and cumulative mass correspond.
+        :param r: The radius value for which the density, temperature, and enclosed mass correspond.
         :param rho: The stellar density.
         :param T: The stellar temperature.
         :param M: The cumulative mass contained within a radius, `r`.
@@ -312,7 +390,8 @@ class StellarStructure:
         Method to calculate the temperature due to radiative contributions:
             radiative temperature = 3 * kappa * rho * L / (16 * pi * a * c * T ** 3 * r ** 2)
 
-        :param r: The radius value for which the density, temperature, and cumulative luminosity correspond.
+        :param r: The radius value for which the density, temperature, and cumulative
+            luminosity correspond.
         :param rho: The stellar density.
         :param T: The stellar temperature.
         :param L: The cumulative luminosity radiated by the star, but considering contributions
@@ -327,6 +406,29 @@ class StellarStructure:
         T_radiative = 3 * opacity * rho * L / (16 * numpy.pi * a * c * (T ** 3) * (r ** 2))
 
         return T_radiative
+
+    def is_convective(self, r, rho, T, M, L):
+        """
+        Method to determine if the dominant temperature contributor at the inputted radius value is
+        convective forces.
+
+        :param r: The radius value at which the temperature contributions are being surveyed.
+        :param rho: The density at `r`.
+        :param T: The temperature at `r`.
+        :param M: The total mass contained within `r`.
+        :param L: The cumulative luminosity at `r`.
+        :return: True if the dominant temperature contributor is convection, otherwise False.
+        """
+
+        # get the convective temperature value at `r`
+        T_conv_value = self.temp_convective(r=r, rho=rho, T=T, M=M)
+
+        # get the radiative temperature value at `r`
+        T_rad_value = self.temp_radiative(r=r, rho=rho, T=T, L=L)
+
+        is_conv_bool = -1.0 * T_conv_value >= -1.0 * T_rad_value
+
+        return is_conv_bool
 
     # ---------- # DIFFERENTIAL EQUATIONS # ---------- #
 
@@ -361,9 +463,7 @@ class StellarStructure:
         dT_dr = self.temperature_grad(r=r, rho=rho, T=T, M=M, L=L)
 
         # calculate the density gradient
-        density_gradient = -1.0 * (
-            (G * M * rho / (r ** 2)) + (dP_dT * dT_dr)
-        ) / (dP_drho)
+        density_gradient = -1.0 * ((G * M * rho / (r ** 2)) + (dP_dT * dT_dr)) / (dP_drho)
 
         return density_gradient
 
@@ -409,7 +509,7 @@ class StellarStructure:
 
         return mass_gradient
 
-    def energy_equation(self, r, rho, T):
+    def energy_equation(self, r, rho, T, energy_gen=None):
         """
         Method to define the energy differential equation:
             dL/dr = 4 * pi * r**2 * rho * epsilon
@@ -420,8 +520,10 @@ class StellarStructure:
         :returns: The luminosity derivative with respect to the radial component.
         """
 
-        # obtain the energy generation rate necessary for defining the stellar luminosity
-        energy_gen = self.energy_gen_rate(rho=rho, T=T, X_cno=None)
+        # obtain the energy generation rate necessary for defining the stellar luminosity;
+        # if None is provided, use the total energy generation rate
+        if energy_gen is None:
+            energy_gen = self.energy_gen_rate(rho=rho, T=T, X_cno=None)
 
         # calculate the luminosity gradient
         lumin_gradient = 4 * numpy.pi * rho * energy_gen * (r ** 2)
