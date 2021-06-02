@@ -1,7 +1,7 @@
 """
 Module to define the stellar structure equations that govern stellar bodies.
 
-:title: stellar_structure.py
+:title: base_stellar_structure.py
 
 :author: Mitchell Shahen
 
@@ -10,7 +10,7 @@ Module to define the stellar structure equations that govern stellar bodies.
 
 import numpy
 import sys
-sys.path.append("../") # be able to access the base directory
+sys.path.append("../../") # be able to access the base directory
 
 from base.constants import a, c, G, gamma, h_bar, k, m_e, m_p
 import base.units as units
