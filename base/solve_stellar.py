@@ -15,7 +15,6 @@ import sys
 sys.path.append("../") # be able to access the base directory
 
 from base.constants import M_sun, sigma
-from base.stellar_structure import rho_index, T_index, M_index, L_index, tau_index
 import base.units as units
 from base.util import find_zeros, interpolate
 
@@ -33,6 +32,14 @@ def get_remaining_optical_depth(stellar_structure, r, state):
     :returns: The remaining optical depth value at the radius, `r`.
     """
 
+    # extract the StellarStructure class and the stellar properties indices
+    # from the inputted `stellar_structure` parameter
+    StellarStructure = stellar_structure.StellarStructure()
+    rho_index = stellar_structure.rho_index
+    T_index = stellar_structure.T_index
+    M_index = stellar_structure.M_index
+    L_index = stellar_structure.L_index
+
     # extract the necessary values from the inputted state variable
     rho = state[rho_index]
     T = state[T_index]
@@ -40,10 +47,10 @@ def get_remaining_optical_depth(stellar_structure, r, state):
     L = state[L_index]
 
     # calculate the mean opacity at the current density and temperature
-    kappa = stellar_structure.mean_opacity(rho=rho, T=T)
+    kappa = StellarStructure.mean_opacity(rho=rho, T=T)
 
     # calculate the radial derivative of the density at the current radius
-    drho_dr = stellar_structure.hydrostat_equil(r=r, rho=rho, T=T, M=M, L=L)
+    drho_dr = StellarStructure.hydrostat_equil(r=r, rho=rho, T=T, M=M, L=L)
 
     # calculate the remaining optical depth from the current radius to infinity
     remain_opt_depth = kappa * (rho ** 2) / numpy.abs(drho_dr)
@@ -51,7 +58,7 @@ def get_remaining_optical_depth(stellar_structure, r, state):
     return remain_opt_depth
 
 
-def test_luminosity(r, state):
+def test_luminosity(stellar_structure, r, state):
     """
     Method to test if the calculated surface luminosity is consistent with the expected surface
     luminosity at the current temperature and density. The radius of the star's surface occurs
@@ -67,6 +74,12 @@ def test_luminosity(r, state):
         radius values truncated to the surface radius value, and a matrix of state values evaluated
         at each radius.
     """
+
+    # extract the StellarStructure class and the stellar properties indices
+    # from the inputted `stellar_structure` parameter
+    T_index = stellar_structure.T_index
+    L_index = stellar_structure.L_index
+    tau_index = stellar_structure.tau_index
 
     # get the optical depth at a very large radius (effectively infinity)
     tau_inf = state[tau_index, -1]
@@ -84,9 +97,7 @@ def test_luminosity(r, state):
     surface_state = interpolate(in_data=state, index=surface_index)
 
     # calculate the expected luminosity at the surface using the surface radius and temperature
-    expected_luminosity = 4 * numpy.pi * sigma * (
-        surface_radius ** 2
-    ) * (
+    expected_luminosity = 4 * numpy.pi * sigma * (surface_radius ** 2) * (
         surface_state[T_index] ** 4
     )
 
@@ -142,6 +153,11 @@ def trial_solution(
     :returns: The surface luminosity error and the array of radius value and the state matrix.
     """
 
+    # extract the StellarStructure class and the stellar properties indices
+    # from the inputted `stellar_structure` parameter
+    StellarStructure = stellar_structure.StellarStructure()
+    M_index = stellar_structure.M_index
+
     if rtol is None:
         rtol = 1e-9
 
@@ -168,9 +184,9 @@ def trial_solution(
     # Ending radius is infinity, integration will only be halted via the halt_integration event
     # Not sure what good values for atol and rtol are, but these seem to work well
     result = integrate.solve_ivp(
-        stellar_structure.get_derivative_state,
+        StellarStructure.get_derivative_state,
         (r_0, numpy.inf),
-        stellar_structure.initial_properties(r_0=r_0, rho_0=rho_0, T_0=T_0),
+        StellarStructure.initial_properties(r_0=r_0, rho_0=rho_0, T_0=T_0),
         events=halt_integration,
         atol=atol,
         rtol=rtol
@@ -180,7 +196,11 @@ def trial_solution(
     r_values, state_values = result.t, result.y
 
     # acquire the luminosity error as well as the truncated radius array and state matrix
-    luminosity_error, trunc_r, trunc_state = test_luminosity(r=r_values, state=state_values)
+    luminosity_error, trunc_r, trunc_state = test_luminosity(
+        stellar_structure=stellar_structure,
+        r=r_values,
+        state=state_values
+    )
 
     return luminosity_error, trunc_r, trunc_state
 
@@ -463,7 +483,7 @@ def solve_structure(
         optical_depth_threshold=1e-4
 ):
     """
-    Solves the stellar structure equations in `stellar_structure.py` using the inputted central
+    Solves the stellar structure equations in `base_stellar_structure.py` using the inputted central
     temperature, `T_0`, by means of the point-and-shoot method. Also employed is the bisection
     algorithm modified with the notion of confidence. A higher confidence results in a faster
     convergence for the central density guess, `rho_0_guess`. Once rho_0_guess falls outside the
@@ -526,7 +546,7 @@ def solve_structure(
         # density interval and improved confidence level
         return solve_structure(
             stellar_structure,
-            T_0,
+            T_0=T_0,
             rho_0_guess=rho_0_guess,
             confidence=higher_confidence,
             rho_0_min=rho_0_min / 1000,
