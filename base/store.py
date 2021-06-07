@@ -114,9 +114,10 @@ class Store:
 
         return data
 
-    def save(self, data=None, data_filename=""):
+    def save_data(self, data=None, data_filename=""):
         """
-        Method for saving data locally.
+        Method for saving data locally. Permissions for overwriting data will be
+        requested if necessary.
 
         :param data: The data intended to be saved.
         :param data_filename: The name of the file to contain the inputted data.

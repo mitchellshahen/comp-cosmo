@@ -12,27 +12,26 @@ describe a star. Additionally, plots of the stellar structure variables are rend
 import numpy
 
 from base.plot import (
-    hr_diagram,
-    luminosity_contributions_plot,
-    opacity_contributions_plot,
-    pressure_contributions_plot,
-    stellar_structure_plot
+    plot_star,
+    plot_sequence
 )
 from base.solve_stellar import solve_structure
-from base.stellar_structure import StellarStructure, L_index, M_index, rho_index, T_index
+from base.stellar_structure import (
+    base_stellar_structure,
+    grav_stellar_structure
+)
 from base.store import Store
 import base.units as units
 from base.util import extrapolate
 
-# specify the set of Stellar Structure Equations to use as well as any modifications
-stellar_structure = StellarStructure()
 
-
-def _generate_star():
+def _generate_star(stellar_structure=None):
     """
     Function to perform all the necessary functions to solve and plot the stellar structure
     equations.
     """
+
+    # ---------- # SET THE INITIAL STELLAR STRUCTURE PROPERTIES # ---------- #
 
     # set the central temperature by providing a value or using the default
     temp_input = input(
@@ -76,6 +75,8 @@ def _generate_star():
     else:
         save_data = False
 
+    # ---------- # SOLVE THE STELLAR STRUCTURE EQUATIONS # ---------- #
+
     # solve the stellar structure equations and acquire the necessary data
     lumin_error, radius_arr, state_matrix = solve_structure(
         stellar_structure,
@@ -91,50 +92,33 @@ def _generate_star():
         axis=0
     )
 
+    # ---------- # SAVE AND PLOT THE STELLAR STRUCTURE SOLUTION # ---------- #
+
     # save the outputted datasets for radius and state
     if save_data:
-        Store().save(data=full_data, data_filename="stellar_data.pickle")
+        Store().save_data(
+            data=full_data,
+            data_filename="stellar_data.pickle"
+        )
 
     # plot all the necessary graphs describing the above generated star
-    stellar_structure_plot(
+    plot_star(
         stellar_structure=stellar_structure,
         radius=full_data[0],
-        density=full_data[rho_index + 1],
-        temperature=full_data[T_index + 1],
-        mass=full_data[M_index + 1],
-        luminosity=full_data[L_index + 1]
-    )
-
-    # plot the pressure and pressure contributions
-    pressure_contributions_plot(
-        stellar_structure=stellar_structure,
-        radius=full_data[0],
-        density=full_data[rho_index + 1],
-        temperature=full_data[T_index + 1]
-    )
-
-    # plot the luminosity contributions
-    luminosity_contributions_plot(
-        stellar_structure=stellar_structure,
-        radius=full_data[0],
-        density=full_data[rho_index + 1],
-        temperature=full_data[T_index + 1]
-    )
-
-    # plot the log of the opacity contributions
-    opacity_contributions_plot(
-        stellar_structure=stellar_structure,
-        radius=full_data[0],
-        density=full_data[rho_index + 1],
-        temperature=full_data[T_index + 1]
+        density=full_data[stellar_structure.rho_index + 1],
+        temperature=full_data[stellar_structure.T_index + 1],
+        mass=full_data[stellar_structure.M_index + 1],
+        luminosity=full_data[stellar_structure.L_index + 1]
     )
 
 
-def _generate_star_sequence():
+def _generate_star_sequence(stellar_structure=None):
     """
     Function to generate a star sequence: generating several stars and saving only each star's most
     important properties.
     """
+
+    # ---------- # SET THE INITIAL STELLAR PROPERTIES # ---------- #
 
     # set the number of stars to generate
     N_input = input(
@@ -185,6 +169,8 @@ def _generate_star_sequence():
     else:
         save_data = False
 
+    # ---------- # SOLVE THE STRUCTURE OF THE FIRST STAR IN THE SEQUENCE # ---------- #
+
     # generate an array of temperature values to generate stars with
     all_cen_temp = numpy.linspace(T_0_i, T_0_f, N)
 
@@ -203,12 +189,14 @@ def _generate_star_sequence():
     # include the important properties from the first generated star
     important_properties = numpy.array([
         [first_radius_arr[-1]], # surface radii
-        [first_state_matrix[rho_index][0]], # central densities
-        [first_state_matrix[T_index][0]], # central temperature
-        [first_state_matrix[T_index][-1]], # surface temperatures
-        [first_state_matrix[M_index][-1]], # total masses
-        [first_state_matrix[L_index][-1]] # total luminosities
+        [first_state_matrix[stellar_structure.rho_index][0]], # central densities
+        [first_state_matrix[stellar_structure.T_index][0]], # central temperature
+        [first_state_matrix[stellar_structure.T_index][-1]], # surface temperatures
+        [first_state_matrix[stellar_structure.M_index][-1]], # total masses
+        [first_state_matrix[stellar_structure.L_index][-1]] # total luminosities
     ])
+
+    # ---------- # SOLVE THE STRUCTURE FOR EACH REAMINING SEQUENCE STAR # ---------- #
 
     # iterate through every central temperature (after the initial
     # central temperature) and generate a star at each value
@@ -237,30 +225,32 @@ def _generate_star_sequence():
         # create an array of the same shape as `important_properties` to contain the new data
         new_properties = numpy.array([
             [radius_arr[-1]], # surface radii
-            [state_matrix[rho_index][0]], # central densities
-            [state_matrix[T_index][0]], # central temperature
-            [state_matrix[T_index][-1]], # surface temperatures
-            [state_matrix[M_index][-1]], # total masses
-            [state_matrix[L_index][-1]] # total luminosities
+            [state_matrix[stellar_structure.rho_index][0]], # central densities
+            [state_matrix[stellar_structure.T_index][0]], # central temperature
+            [state_matrix[stellar_structure.T_index][-1]], # surface temperatures
+            [state_matrix[stellar_structure.M_index][-1]], # total masses
+            [state_matrix[stellar_structure.L_index][-1]] # total luminosities
         ])
 
         # add the array of new properties to the array of all properties
-        important_properties = numpy.concatenate((important_properties, new_properties), axis=1)
+        important_properties = numpy.concatenate(
+            (important_properties, new_properties),
+            axis=1
+        )
+
+    # ---------- # SAVE AND PLOT THE STELLAR SEQUENCE # ---------- #
 
     # save the stellar sequence
     if save_data:
-        Store().save(data=important_properties, data_filename="stellar_sequence.pickle")
+        Store().save_data(
+            data=important_properties,
+            data_filename="stellar_sequence.pickle"
+        )
 
-    # get the surface temperature data
-    surf_temp_data = important_properties[3][:]
-
-    # get the luminosity data
-    luminosity_data = important_properties[5][:]
-
-    # use the stellar sequence to generate a Hertzsprung-Russell diagram
-    hr_diagram(
-        effect_temps=surf_temp_data,
-        luminosities=luminosity_data
+    # plot all the graphs necessary to describe a stellar sequence
+    plot_sequence(
+        temperatures=important_properties[3][:],
+        luminosities=important_properties[5][:]
     )
 
 
@@ -269,26 +259,86 @@ def execute():
     Function to execute a method of analysis as specified by the user.
     """
 
+    # ---------- # SET THE AVAILABLE FUNCTIONS AND STELLAR STRUCTURES # ---------- #
+
     # create a dictionary of all the supported functions
     all_functions = {
         "Generate a Star": [_generate_star, "0"],
         "Generate a Stellar Sequence": [_generate_star_sequence, "1"]
     }
 
+    # create a dictionary of all the available stellar structure modifications
+    all_mods = {
+        "No Modifications": [base_stellar_structure, "0"],
+        "Gravity Modifications": [grav_stellar_structure, "1"]
+    }
+
+    # ---------- # ASK THE USER TO SELECT A FUNCTION AND STELLAR STRUCTURE # ---------- #
+
     # print all the functions that are included in this module;
     # Also include a number used to select a function
     print("\nAll Available Functions:\n")
-    for f_descr in all_functions.keys():
-        print("[{}] {}".format(all_functions[f_descr][1], f_descr))
+    for func_descr in all_functions.keys():
+        print("[{}] {}".format(all_functions[func_descr][1], func_descr))
 
     # instruct the user to select a function from those listed
-    f_num = input("\nSelect a Function Number (Press [Enter] to Exit) >>> ")
+    select_func_num = input("\nSelect a Function Number (Press [Enter] to Exit) >>> ")
 
-    # execute the function corresponding to the selected function number
-    for f_descr in all_functions.keys():
-        if all_functions[f_descr][1] == f_num:
-            print("\nExecuting '{}'...".format(f_descr))
-            all_functions[f_descr][0]()
+    # exit if no function number has been selected
+    if len(select_func_num) == 0:
+        exit()
+
+    # print all the available stellar structure equations modifications
+    print("\nAll Available Stellar Structure Modifications:\n")
+    for mod_descr in all_mods.keys():
+        print("[{}] {}".format(all_mods[mod_descr][1], mod_descr))
+
+    # instruct the user to select a function from those listed
+    select_mod_num = input("\nSelect a Modification Number (Press [Enter] to Exit) >>> ")
+
+    # exit if no function number has been selected
+    if len(select_mod_num) == 0:
+        exit()
+
+    # ---------- # FIND AND EXECUTE THE SELECTED FUNCTION AND STELLAR STRUCTURE # ---------- #
+
+    # set the selected function executable and the stellar structure class to be None initially
+    select_func_exec = None
+    select_mod_class = None
+
+    # also make the function description and modification description available
+    select_func_descr = None
+    select_mod_descr = None
+
+    # search the available functions for the selected function
+    for func_descr in all_functions.keys():
+        # unpack the current function obtaining its executable and function number
+        curr_func_exec = all_functions[func_descr][0]
+        curr_func_num = all_functions[func_descr][1]
+
+        # determine if the current selection corresponds to that which was selected by the user
+        if curr_func_num == select_func_num:
+            select_func_exec = curr_func_exec
+            select_func_descr = func_descr
+
+    # search the available stellar_structure classes for the selected stellar structure class
+    for mod_descr in all_mods.keys():
+        # unpack the current stellar structure selection obtaining its class and number
+        curr_mod_class = all_mods[mod_descr][0]
+        curr_mod_num = all_mods[mod_descr][1]
+
+        # determine if the current selection corresponds to that which was selected by the user
+        if curr_mod_num == select_mod_num:
+            select_mod_class = curr_mod_class
+            select_mod_descr = mod_descr
+
+    # ensure both the selected function and stellar structure class were acquired
+    if any([select_func_exec is None, select_mod_class is None]):
+        exit()
+
+    # execute the selected function using the selected stellar structure class
+    print("\nExecuting '{}' with '{}'...".format(select_func_descr, select_mod_descr))
+    select_func_exec(stellar_structure=select_mod_class)
 
 
 if __name__ == "__main__":

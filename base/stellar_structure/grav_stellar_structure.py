@@ -1,7 +1,7 @@
 """
 Module to define the stellar structure equations that govern stellar bodies.
 
-:title: stellar_structure.py
+:title: base_stellar_structure.py
 
 :author: Mitchell Shahen
 
@@ -10,7 +10,7 @@ Module to define the stellar structure equations that govern stellar bodies.
 
 import numpy
 import sys
-sys.path.append("../") # be able to access the base directory
+sys.path.append("../../") # be able to access the base directory
 
 from base.constants import a, c, G, gamma, h_bar, k, m_e, m_p
 import base.units as units
@@ -27,13 +27,18 @@ M_index = 2
 L_index = 3
 tau_index = 4
 
+# set up variables for introducing gravity modifications
+# Note: the default gravity modifications are no modifications (grav_small = 0 and grav_large = inf)
+grav_small = 0
+grav_large = numpy.inf
+
 
 class StellarStructure:
     """
     Class object to define and solve the stellar structure equations.
     """
 
-    def __init__(self, X=X_sun, Y=Y_sun, Z=Z_sun):
+    def __init__(self, X=X_sun, Y=Y_sun, Z=Z_sun, lambda_small=grav_small, lambda_large=grav_large):
         """
         Constructor class object for the StellarStructure class.
 
@@ -41,6 +46,8 @@ class StellarStructure:
         :param Y: The mass fraction of helium in the star. Default is the solar He mass fraction.
         :param Z: The mass fraction of remaining materials in the star. Defaults to the mass
             fraction of remaining materials in the Sun.
+        :param lambda_small: The small-scale gravitational contributions.
+        :param lambda_large: The large-scale gravitational_contributions.
         """
 
         # ensure that the inputted mass fractions sum to 1 (to some negligible error)
@@ -60,6 +67,10 @@ class StellarStructure:
 
         # set the mass fraction of the remaining elements
         self.Z = Z
+
+        # set the lambda constraints
+        self.lambda_small = lambda_small
+        self.lambda_large = lambda_large
 
     def initial_properties(self, r_0, rho_0, T_0):
         """
@@ -380,8 +391,11 @@ class StellarStructure:
         # get the total pressure
         pressure = self.total_pressure(rho=rho, T=T)
 
+        # calculate the gravitational component
+        grav_comp = G * M * (1 + (self.lambda_small / r) + (r / self.lambda_large)) / (r ** 2)
+
         # calculate the convective temperature gradient
-        T_convective = (1 - 1 / gamma) * T * G * M * rho / (pressure * (r ** 2))
+        T_convective = (1 - 1 / gamma) * T * grav_comp * rho / pressure
 
         return T_convective
 
@@ -462,8 +476,11 @@ class StellarStructure:
         # calculate the temperature-radius differential
         dT_dr = self.temperature_grad(r=r, rho=rho, T=T, M=M, L=L)
 
+        # calculate the gravitational component
+        grav_comp = G * M * (1 + (self.lambda_small / r) + (r / self.lambda_large)) / (r ** 2)
+
         # calculate the density gradient
-        density_gradient = -1.0 * ((G * M * rho / (r ** 2)) + (dP_dT * dT_dr)) / (dP_drho)
+        density_gradient = -1.0 * ((grav_comp * rho) + (dP_dT * dT_dr)) / (dP_drho)
 
         return density_gradient
 
