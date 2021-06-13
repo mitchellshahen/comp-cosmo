@@ -20,12 +20,29 @@ structure of stars garnering stellar properties such as density, temperature, ma
 
 Included in the `comp-cosmo` directory is the `setup.py` file used to create a conda environment containing
 all the necessary modules and dependencies from matplotlib, numpy, and scipy.
+Note: When running this environment on Linux, ensure that the `python3-tk` package is installed by running the following command.
+
+```sh
+sudo apt-get install python3-tk
+```
 
 ### Available Functionality
 
 Two types of stellar solutions are available, single star generation and stellar sequence generation. Executing
-the `main.py` module, by running `python main.py` in the `comp-cosmo` directory, will give the option of
+the `main.py` module, by running the following command in the `comp-cosmo` directory, will give the option of
 selecting a stellar solution to perform.
+
+(Windows)
+
+```sh
+python main.py
+```
+
+(Linux)
+
+```sh
+python3 main.py
+```
 
 The single star generation method involves solving the stellar structure equations, included below, using a
 fixed central (core) temperature, performing the integration solution, and checking the results against an
