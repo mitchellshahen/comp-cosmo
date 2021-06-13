@@ -12,13 +12,19 @@ import json
 import os
 import pickle
 
+# set the filepath separator value
+seperator = os.path.sep
+
+# set the filepath of the current file
+curr_filepath = os.path.abspath(__file__)
+
 # path of the default data store
 default_data_dir = os.path.join(
-    __file__.replace(
-        "\\" + __file__.split("\\")[-2],
+    curr_filepath.replace(
+        seperator + curr_filepath.split(seperator)[-2],
         ""
     ).replace(
-        "\\" + __file__.split("\\")[-1],
+        seperator + curr_filepath.split(seperator)[-1],
         ""
     ),
     "data"
