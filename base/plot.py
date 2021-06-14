@@ -79,8 +79,7 @@ def hr_diagram(effect_temps, luminosities):
     # set the title
     plt.title("Hertzsprung-Russell Diagram")
 
-    # render the plot
-    plt.show()
+    return plt
 
 
 def luminosity_contribution_plot(stellar_structure, radius, density, temperature, mass, luminosity):
@@ -209,8 +208,7 @@ def luminosity_contribution_plot(stellar_structure, radius, density, temperature
     # set the legend
     plt.legend()
 
-    # render the plot
-    plt.show()
+    return plt
 
 
 def opacity_contribution_plot(stellar_structure, radius, density, temperature, mass, luminosity):
@@ -339,8 +337,7 @@ def opacity_contribution_plot(stellar_structure, radius, density, temperature, m
     # set the legend
     plt.legend()
 
-    # render the plot
-    plt.show()
+    return plt
 
 
 def pressure_contribution_plot(stellar_structure, radius, density, temperature, mass, luminosity):
@@ -494,8 +491,7 @@ def pressure_contribution_plot(stellar_structure, radius, density, temperature, 
     # set the legend
     plt.legend(loc="upper right")
 
-    # render the plot
-    plt.show()
+    return plt
 
 
 def stellar_structure_plot(stellar_structure, radius, density, temperature, mass, luminosity):
@@ -633,8 +629,7 @@ def stellar_structure_plot(stellar_structure, radius, density, temperature, mass
     # set the legend
     plt.legend(loc="upper right")
 
-    # render the plot
-    plt.show()
+    return plt
 
 
 # ---------- # STELLAR AND STELLAR SEQUENCE PLOTTING FUNCTIONS # ---------- #
@@ -653,7 +648,7 @@ def plot_star(stellar_structure, radius, density, temperature, mass, luminosity)
     """
 
     # plot the complete stellar structure plot
-    stellar_structure_plot(
+    st_str_plt = stellar_structure_plot(
         stellar_structure=stellar_structure,
         radius=radius,
         density=density,
@@ -663,7 +658,7 @@ def plot_star(stellar_structure, radius, density, temperature, mass, luminosity)
     )
 
     # plot the pressure contributions
-    pressure_contribution_plot(
+    pr_con_plt = pressure_contribution_plot(
         stellar_structure=stellar_structure,
         radius=radius,
         density=density,
@@ -673,7 +668,7 @@ def plot_star(stellar_structure, radius, density, temperature, mass, luminosity)
     )
 
     # plot the luminosity contributions
-    luminosity_contribution_plot(
+    lum_con_plt = luminosity_contribution_plot(
         stellar_structure=stellar_structure,
         radius=radius,
         density=density,
@@ -683,7 +678,7 @@ def plot_star(stellar_structure, radius, density, temperature, mass, luminosity)
     )
 
     # plot the logarithm of the opacity contributions
-    opacity_contribution_plot(
+    op_con_plt = opacity_contribution_plot(
         stellar_structure=stellar_structure,
         radius=radius,
         density=density,
@@ -691,6 +686,16 @@ def plot_star(stellar_structure, radius, density, temperature, mass, luminosity)
         mass=mass,
         luminosity=luminosity
     )
+
+    # create a dictionary to output all the generated plots
+    output_plots = {
+        "stellar_structure_plot": st_str_plt,
+        "pressure_contributions_plot": pr_con_plt,
+        "luminosity_contributions_plot": lum_con_plt,
+        "opacity_contributions_plot": op_con_plt
+    }
+
+    return output_plots
 
 
 def plot_sequence(temperatures, luminosities):
@@ -703,7 +708,14 @@ def plot_sequence(temperatures, luminosities):
     """
 
     # plot the Hertzsprung-Russell diagram
-    hr_diagram(
+    hr_plt = hr_diagram(
         effect_temps=temperatures,
         luminosities=luminosities
     )
+
+    # create a dictionary to output all the generated plots
+    output_plots = {
+        "hertzsprung_russel_diagram": hr_plt
+    }
+
+    return output_plots
