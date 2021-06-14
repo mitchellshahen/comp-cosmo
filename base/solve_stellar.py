@@ -11,6 +11,7 @@ its parameters, and modifying the initial parameters to improve the next trial s
 
 import numpy
 from scipy import integrate
+
 import sys
 sys.path.append("../") # be able to access the base directory
 
