@@ -92,17 +92,10 @@ def _generate_star(stellar_structure=None):
         axis=0
     )
 
-    # ---------- # SAVE AND PLOT THE STELLAR STRUCTURE SOLUTION # ---------- #
+    # ---------- # PLOT THE STELLAR STRUCTURE SOLUTION # ---------- #
 
-    # save the outputted datasets for radius and state
-    if save_data:
-        Store().save_data(
-            data=full_data,
-            data_filename="stellar_data.pickle"
-        )
-
-    # plot all the necessary graphs describing the above generated star
-    plot_star(
+    # generate all the necessary graphs describing the above generated star
+    plot_figures = plot_star(
         stellar_structure=stellar_structure,
         radius=full_data[0],
         density=full_data[stellar_structure.rho_index + 1],
@@ -110,6 +103,35 @@ def _generate_star(stellar_structure=None):
         mass=full_data[stellar_structure.M_index + 1],
         luminosity=full_data[stellar_structure.L_index + 1]
     )
+
+	# render all the generated plots
+    for plot_figure in plot_figures.values():
+	    plot_figure.show()
+
+	# ---------- # SAVE THE STELLAR DATA AND RENDERED PLOTS # ---------- #
+
+	# save the outputted datasets and all rendered plots, if requested
+    if save_data:
+        # set up the data store parameters
+        data_store = Store()
+
+        # save the complete dataset
+        data_store.save_data(
+            data=full_data,
+            data_filename="stellar_data.pickle"
+        )
+
+        # save each of the rendered plots
+        for figure_name, plot_figure in plot_figures.items():
+
+            # create the intended filepath to the saved plot
+            figure_filepath = "stellar_data_{}.png".format(figure_name)
+
+            # save the plot figure in a file named like the figure's name
+            data_store.save_plot(
+                figure=plot_figure,
+                plot_filename=figure_filename
+            )
 
 
 def _generate_star_sequence(stellar_structure=None):
@@ -238,20 +260,40 @@ def _generate_star_sequence(stellar_structure=None):
             axis=1
         )
 
-    # ---------- # SAVE AND PLOT THE STELLAR SEQUENCE # ---------- #
+    # ---------- # GENERATE AND RENDER THE STELLAR SEQUENCE PLOTS # ---------- #
 
-    # save the stellar sequence
+    # generate all the graphs necessary to describe a stellar sequence
+    plot_figures = plot_sequence(
+        temperatures=important_properties[3][:],
+        luminosities=important_properties[5][:]
+    )
+
+    # render all the generated plots
+    for plot_figure in plot_figures.values():
+        plot_figure.show()
+
+    # ---------- # SAVE THE STELLAR SEQUENCE DATA AND GENERATED PLOTS # ---------- #
+
     if save_data:
-        Store().save_data(
+        # generate the data store
+        data_store = Store()
+
+        # save the stellar sequence data
+        data_store.save_data(
             data=important_properties,
             data_filename="stellar_sequence.pickle"
         )
 
-    # plot all the graphs necessary to describe a stellar sequence
-    plot_sequence(
-        temperatures=important_properties[3][:],
-        luminosities=important_properties[5][:]
-    )
+        # save each of the rendered plots for the stellar sequence plots
+        for figure_name, plot_figure in plot_figures.items():
+            # generate the filename of the saved plot figure
+            figure_filename = "stellar_sequence_{}.png".format(figure_name)
+
+            # save the figure in the intended location as the above filename
+            data_store.save_plot(
+                figure=figure_name,
+                plot_filename=figure_filename
+            )
 
 
 def execute():
