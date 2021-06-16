@@ -14,7 +14,7 @@ I endeavoured to develop this project as a recent graduate in Honours Physics fr
 
 ### Acknowledgements and Collaborations
 
-The foundation of this project was developed as an end-of-term project as part of the PHYS 375 coursework in the University of Waterloo's Physics and Astronomy department. The project was formulated and overseen by Dr. Avery Broderick, lecturing professor at UW. As a student of this course, the foundation of this course was developed in collaboration with students and colleagues Amaar Quadri, Omar Auda, Kevin Djuric, Shivani Hegde, Frederick Hobel, Jedri de Luna, and Meagan Stewart.
+The foundation of this project was developed as an end-of-term project as part of the PHYS 375 coursework in the University of Waterloo's Physics and Astronomy department. The project was formulated and overseen by [Dr. Avery Broderick](www.science.uwaterloo.ca/~abroderi), lecturing professor at UW. As a student of this course, the foundation of this project was developed in collaboration with students and colleagues Amaar Quadri, Omar Auda, Kevin Djuric, Shivani Hegde, Frederick Hobel, Jedri de Luna, and Meagan Stewart. The completed code, project outline, and final results completed as part of the original coursework is included on Amaar's [github](https://github.com/amaarquadri/StarsModifiedGravity). Amaar was also instrumental in developing the main code base for the PHYS 375 project.
 
 ### Directories
 
