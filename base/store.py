@@ -19,16 +19,14 @@ seperator = os.path.sep
 curr_filepath = os.path.abspath(__file__)
 
 # path of the default data store
-default_data_dir = os.path.join(
-    curr_filepath.replace(
-        seperator + curr_filepath.split(seperator)[-2],
-        ""
-    ).replace(
-        seperator + curr_filepath.split(seperator)[-1],
-        ""
-    ),
+DEFAULT_DATA_DIR = os.path.join(
+    os.path.dirname(os.path.dirname(__file__)),
     "data"
 )
+
+# define the supported file extensions for saving data
+SUPPORTED_DATA_FORMATS = [".json", ".pickle", ".txt"]
+SUPPORTED_PLOT_FORMATS = [".png", ".pdf", ".svg", ".jpeg", ".jpg"]
 
 
 class Store:
@@ -36,7 +34,7 @@ class Store:
     Class object defining methods used in data acquisition, storage, and maintenance.
     """
 
-    def __init__(self, data_directory=default_data_dir):
+    def __init__(self, data_directory=DEFAULT_DATA_DIR):
         """
         Constructor class object for the Store class.
 
@@ -44,8 +42,8 @@ class Store:
             (or is intended to be stored).
         """
 
-        self.supported_data_formats = [".json", ".pickle", ".txt"]
-        self.supported_plot_formats = [".png", ".pdf", ".svg", ".jpeg", ".jpg"]
+        self.supported_data_formats = SUPPORTED_DATA_FORMATS
+        self.supported_plot_formats = SUPPORTED_PLOT_FORMATS
         self.data_directory = data_directory
 
     def admin(self, verbose=False):
@@ -70,17 +68,17 @@ class Store:
             data_sizes.append(size)
 
         # print the number of files contained within the data store
-        print("Files: {}".format(len(data_names)))
+        print(f"Files: {len(data_names)}")
 
         # print the complete size of the data store
-        print("Size: {} bytes".format(sum(data_sizes)))
+        print(f"Size: {sum(data_sizes)} bytes")
 
         # if verbose, print all the available data files
         if verbose:
             # enumerate all the data files contained within the data store
             print("\nAll Data:")
             for i, name in enumerate(data_names):
-                print("    {}: {} bytes".format(name, data_sizes[i]))
+                print(f"   {name}: {data_sizes[i]}")
 
     def get(self, data_filename=""):
         """
@@ -111,15 +109,15 @@ class Store:
 
         if extension == ".pickle":
             # open the intended file and extract the data using the `pickle` package
-            with open(filepath, 'rb') as open_file:
+            with open(filepath, 'rb', encoding='utf-8') as open_file:
                 data = pickle.load(open_file)
         elif extension == ".json":
             # open the intended file and extract the data using the built-in `json` package
-            with open(filepath) as open_file:
+            with open(filepath, 'r', encoding='utf-8') as open_file:
                 data = json.load(open_file)
         elif extension == ".txt":
             # open the intended file and extract the data using the built-in .read() method
-            with open(filepath) as open_file:
+            with open(filepath, 'r', encoding='utf-8') as open_file:
                 data = open_file.read()
 
         return data
@@ -140,9 +138,9 @@ class Store:
         extension = os.path.splitext(filepath)[-1]
         if extension not in self.supported_data_formats:
             print(
-                "The provided filename indicates that the data is intended to be saved "
-                "as an incompatible file format, '{}'. Instead, the data will be saved "
-                "as a pickle file (with a `.pickle` extension).".format(extension)
+                f"The provided filename indicates that the data is requested to be saved as " \
+                f"an incompatible file format, '{extension}'. Instead, the data will be saved " \
+                f"as the default file format, a pickle file using the '.pickle' extension."
             )
             # replace the filepath's old, incompatible extension with `.pickle`
             filepath = filepath.replace(extension, ".pickle")
@@ -168,13 +166,13 @@ class Store:
             if data is not None:
                 # save the data using a method that is dependent on the data format
                 if extension == ".pickle":
-                    with open(filepath, 'wb') as open_file:
+                    with open(filepath, 'wb', encoding='utf-8') as open_file:
                         pickle.dump(data, open_file, protocol=pickle.HIGHEST_PROTOCOL)
                 elif extension == ".json":
-                    with open(filepath, "w") as open_file:
+                    with open(filepath, "w", encoding='utf-8') as open_file:
                         json.dump(data, open_file)
                 elif extension == ".txt":
-                    with open(filepath, "w") as open_file:
+                    with open(filepath, "w", encoding='utf-8') as open_file:
                         open_file.write(data)
             else:
                 print("No data was provided. Therefore, no data will be saved.")

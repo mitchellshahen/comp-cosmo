@@ -9,68 +9,53 @@ Module to define the stellar structure equations that govern stellar bodies.
 """
 
 import numpy
-import sys
-sys.path.append("../../") # be able to access the base directory
 
 from base.constants import a, c, G, gamma, h_bar, k, m_e, m_p
-import base.units as units
+from base.units import kg, W, m
+from base.solve_stellar import RHO_INDEX, T_INDEX, M_INDEX, L_INDEX
 
-# include the mass fractions for the Sun to be used as defaults
-X_sun = 0.7381
-Y_sun = 0.2485
-Z_sun = 0.0134
-
-# include the indices for the state and derivative state arrays
-rho_index = 0
-T_index = 1
-M_index = 2
-L_index = 3
-tau_index = 4
+# set the mass fractions of Hydrogen, Helium, and then the other elements
+X_FRAC = 0.7381
+Y_FRAC = 0.2485
+Z_FRAC = 0.0134
 
 # set up variables for introducing gravity modifications
 # Note: the default gravity modifications are no modifications (grav_small = 0 and grav_large = inf)
-grav_small = 0
-grav_large = numpy.inf
+GRAV_SMALL = 0
+GRAV_LARGE = numpy.inf
 
 
-class StellarStructure:
+class StellarStructureGrav:
     """
     Class object to define and solve the stellar structure equations.
     """
 
-    def __init__(self, X=X_sun, Y=Y_sun, Z=Z_sun, lambda_small=grav_small, lambda_large=grav_large):
+    def __init__(self):
         """
         Constructor class object for the StellarStructure class.
-
-        :param X: The mass fraction of hydrogen in the star. Default is the solar H mass fraction.
-        :param Y: The mass fraction of helium in the star. Default is the solar He mass fraction.
-        :param Z: The mass fraction of remaining materials in the star. Defaults to the mass
-            fraction of remaining materials in the Sun.
-        :param lambda_small: The small-scale gravitational contributions.
-        :param lambda_large: The large-scale gravitational_contributions.
+        Sets the mass fractions and gravitational effect parameters
         """
 
-        # ensure that the inputted mass fractions sum to 1 (to some negligible error)
+        # ensure that the user defined variables are valid and make sense
         if not all(
                 [
-                    X + Y + Z >= 0.9999,
-                    X + Y + Z <= 1.0001
+                    X_FRAC + Y_FRAC + Z_FRAC >= 0.9999,
+                    X_FRAC + Y_FRAC + Z_FRAC <= 1.0001,
+                    GRAV_SMALL < GRAV_LARGE,
+                    GRAV_SMALL >= 0,
+                    GRAV_LARGE >= 0
                 ]
         ):
-            raise IOError("The inputted mass fractions, X, Y, and Z must sum to 1.")
+            raise IOError("The inputted mass fractions and gravitational effects are invalid.")
 
-        # set the mass fraction of hydrogen
-        self.X = X
-
-        # set the mass fraction of helium
-        self.Y = Y
-
-        # set the mass fraction of the remaining elements
-        self.Z = Z
+        # set the mass fraction of hydrogen, helium, and all other remaining elements
+        self.X = X_FRAC
+        self.Y = Y_FRAC
+        self.Z = Z_FRAC
 
         # set the lambda constraints
-        self.lambda_small = lambda_small
-        self.lambda_large = lambda_large
+        self.lambda_small = GRAV_SMALL
+        self.lambda_large = GRAV_LARGE
 
     def initial_properties(self, r_0, rho_0, T_0):
         """
@@ -110,10 +95,10 @@ class StellarStructure:
         """
 
         # extract from the input state the necessary variables
-        rho = state[rho_index]
-        T = state[T_index]
-        M = state[M_index]
-        L = state[L_index]
+        rho = state[RHO_INDEX]
+        T = state[T_INDEX]
+        M = state[M_INDEX]
+        L = state[L_INDEX]
 
         # ensure no state values are 0
         if any(
@@ -162,7 +147,7 @@ class StellarStructure:
         T_6 = T / (10 ** 6)
 
         # calculate the energy generation rate from the PP-chain
-        epsilon_pp = (1.07e-7 * (units.W / units.kg)) * rho_5 * (self.X ** 2) * (T_6 ** 4)
+        epsilon_pp = (1.07e-7 * (W / kg)) * rho_5 * (self.X ** 2) * (T_6 ** 4)
 
         return epsilon_pp
 
@@ -193,7 +178,7 @@ class StellarStructure:
         T_6 = T / (10 ** 6)
 
         # calculate the energy generate rate from the CNO cycle
-        epsilon_cno = (8.24e-26 * (units.W / units.kg)) * rho_5 * self.X * X_cno * (T_6 ** 19.9)
+        epsilon_cno = (8.24e-26 * (W / kg)) * rho_5 * self.X * X_cno * (T_6 ** 19.9)
 
         return epsilon_cno
 
@@ -236,7 +221,7 @@ class StellarStructure:
         """
 
         # calculate the mean opacity from electron scattering
-        kappa_es_coeff = 0.02 * (units.m ** 2 / units.kg)
+        kappa_es_coeff = 0.02 * (m ** 2 / kg)
         kappa_es = kappa_es_coeff * (1 + self.X)
 
         return kappa_es
@@ -254,7 +239,7 @@ class StellarStructure:
         rho_3 = rho / (10 ** 3)
 
         # calculate the mean opacity from free-free scattering
-        kappa_ff_coeff = 1.0e24 * (units.m ** 2 / units.kg)
+        kappa_ff_coeff = 1.0e24 * (m ** 2 / kg)
         kappa_ff = kappa_ff_coeff * (self.Z + 0.0001) * (rho_3 ** 0.7) * (T ** (-7 / 2))
 
         return kappa_ff
@@ -272,7 +257,7 @@ class StellarStructure:
         rho_3 = rho / (10 ** 3)
 
         # calculate the mean opacity from H-minus scattering
-        kappa_hm_coeff = 2.5e-32 * (units.m ** 2 / units.kg)
+        kappa_hm_coeff = 2.5e-32 * (m ** 2 / kg)
         kappa_hm = kappa_hm_coeff * (self.Z / 0.02) * (rho_3 ** 0.5) * (T ** 9)
 
         return kappa_hm
@@ -316,7 +301,15 @@ class StellarStructure:
         """
 
         # calculate the non-relativistic degeneracy pressure
-        pressure_deg = ((3 * numpy.pi ** 2) ** (2/3)) * (h_bar ** 2) * ((rho / m_p) ** (5/3)) / (5 * m_e)
+        pressure_deg = (
+            (3 * numpy.pi ** 2) ** (2/3)
+        ) * (
+            h_bar ** 2
+        ) * (
+            (rho / m_p) ** (5/3)
+        ) / (
+            5 * m_e
+        )
 
         return pressure_deg
 
@@ -469,7 +462,15 @@ class StellarStructure:
         dP_dT = (rho * k / (self.mean_molec_weight() * m_p)) + (4 * a * (T ** 3) / 3)
 
         # calculate the pressure density differential
-        deg_pressure_diff = ((3 * (numpy.pi ** 2)) ** (2/3)) * (h_bar ** 2) * ((rho / m_p) ** (2/3)) / (3 * m_e * m_p)
+        deg_pressure_diff = (
+            (3 * (numpy.pi ** 2)) ** (2/3)
+        ) * (
+            h_bar ** 2
+        ) * (
+            (rho / m_p) ** (2/3)
+        ) / (
+            3 * m_e * m_p
+        )
         ideal_pressure_diff = (k * T) / (self.mean_molec_weight() * m_p)
         dP_drho = deg_pressure_diff + ideal_pressure_diff
 
