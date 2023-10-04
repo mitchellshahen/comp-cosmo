@@ -12,6 +12,12 @@ import json
 import os
 import pickle
 
+# set the filepath separator value
+seperator = os.path.sep
+
+# set the filepath of the current file
+curr_filepath = os.path.abspath(__file__)
+
 # path of the default data store
 DEFAULT_DATA_DIR = os.path.join(
     os.path.dirname(os.path.dirname(__file__)),
@@ -19,7 +25,8 @@ DEFAULT_DATA_DIR = os.path.join(
 )
 
 # define the supported file extensions for saving data
-SUPPORTED_FORMATS = [".json", ".pickle", ".txt"]
+SUPPORTED_DATA_FORMATS = [".json", ".pickle", ".txt"]
+SUPPORTED_PLOT_FORMATS = [".png", ".pdf", ".svg", ".jpeg", ".jpg"]
 
 
 class Store:
@@ -35,7 +42,8 @@ class Store:
             (or is intended to be stored).
         """
 
-        self.supported_formats = SUPPORTED_FORMATS
+        self.supported_data_formats = SUPPORTED_DATA_FORMATS
+        self.supported_plot_formats = SUPPORTED_PLOT_FORMATS
         self.data_directory = data_directory
 
     def admin(self, verbose=False):
@@ -83,12 +91,15 @@ class Store:
         # construct the full filepath
         filepath = os.path.join(self.data_directory, data_filename)
 
+        # extract the extension from the full filepath
+        file_ext = os.path.splitext(filepath)[-1]
+
         # ensure that the intended data file exists and is of a supported file format
         if not all(
                 [
-                    os.path.exists(filepath),
-                    os.path.isfile(filepath),
-                    os.path.splitext(filepath)[-1] in self.supported_formats
+                    os.path.exists(filepath), # the requested file exists
+                    os.path.isfile(filepath), # the requested file is a file
+                    file_ext in self.supported_data_formats # the requested file's type is supported
                 ]
         ):
             raise IOError("Intended data file is not found or is incompatible.")
@@ -125,7 +136,7 @@ class Store:
 
         # ensure the intended data file is of a supported file format
         extension = os.path.splitext(filepath)[-1]
-        if extension not in self.supported_formats:
+        if extension not in self.supported_data_formats:
             print(
                 f"The provided filename indicates that the data is requested to be saved as " \
                 f"an incompatible file format, '{extension}'. Instead, the data will be saved " \
@@ -167,3 +178,48 @@ class Store:
                 print("No data was provided. Therefore, no data will be saved.")
         else:
             print("Overwrite Permission Denied. Data will not be saved")
+
+    def save_plot(figure=None, plot_filename=""):
+        """
+        A method to save the provided figure in the provided filename.
+        """
+
+        # create the full filepath to the intended plot file
+        filepath = os.path.join(self.data_directory, plot_filename)
+
+        # ensure the provided plot filename is to be saved as a supported format
+        extension = os.path.splitext(filepath)[-1]
+        if extension not in self.supported_plot_formats:
+            print(
+                "The provided filename indicates that the data is intended to be saved "
+                "as an incompatible file format, '{}'. Instead, the data will be saved "
+                "as a png file (with a `.png` extension).".format(extension)
+            )
+            # replace the original filepath's extension with the default, `.png`
+            filepath = filepath.replace(extension, ".png")
+            extension = ".png"
+
+        # ensure that saving the intended plot file will not overwrite any existing files
+        if os.path.exists(filepath):
+            # include that the initial saving process was not done cleanly (possible overwrite)
+            clean = False
+
+            # in the event of an overwrite, ask the user if the data file should be overwritten
+            print("The intended data file already exists in the selected directory.")
+            overwrite = input("Overwrite? [Y], N >>> ").lower() in ["y", "yes", ""]
+        else:
+            # include that the saving process was performed cleanly
+            clean = True
+
+            # include that overwriting is allowed (because no information is being overwritten)
+            overwrite = True
+
+        if overwrite or clean:
+            # ensure there exists a figure to be saved
+            if figure:
+                # save that data using matplotlib.pyplot's savefig method
+                figure.savefig(filepath)
+            else:
+                print("No figure was provided. Therefore, no plot will be saved.")
+        else:
+            print("Overwrite Permission Denied. Plot will not be saved.")
