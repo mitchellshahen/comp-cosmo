@@ -12,12 +12,6 @@ import json
 import os
 import pickle
 
-# set the filepath separator value
-seperator = os.path.sep
-
-# set the filepath of the current file
-curr_filepath = os.path.abspath(__file__)
-
 # path of the default data store
 DEFAULT_DATA_DIR = os.path.join(
     os.path.dirname(os.path.dirname(__file__)),
@@ -179,7 +173,7 @@ class Store:
         else:
             print("Overwrite Permission Denied. Data will not be saved")
 
-    def save_plot(figure=None, plot_filename=""):
+    def save_plot(self, figure=None, plot_filename=""):
         """
         A method to save the provided figure in the provided filename.
         """
@@ -191,9 +185,9 @@ class Store:
         extension = os.path.splitext(filepath)[-1]
         if extension not in self.supported_plot_formats:
             print(
-                "The provided filename indicates that the data is intended to be saved "
-                "as an incompatible file format, '{}'. Instead, the data will be saved "
-                "as a png file (with a `.png` extension).".format(extension)
+                f"The provided filename indicates that the data is intended to be saved " \
+                f"as an incompatible file format, '{extension}'. Instead, the data will " \
+                f"be saved as a png file (with a `.png` extension)"
             )
             # replace the original filepath's extension with the default, `.png`
             filepath = filepath.replace(extension, ".png")
