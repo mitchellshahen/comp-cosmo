@@ -38,8 +38,8 @@ sudo apt-get install python3-tk
 ### Available Functionality
 
 Two types of stellar solutions are available, single star generation and stellar sequence generation. Executing
-the `main.py` module, by running the following command in the `comp-cosmo` directory, will give the option of
-selecting a stellar solution to perform.
+the `main.py` module, by running the following command while in the `comp-cosmo` directory, will give the option
+of selecting a stellar solution to perform and a list of the modifications that may be applied.
 
 (Windows)
 
