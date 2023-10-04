@@ -10,8 +10,6 @@ Plotting module containing functions to plot various graphs in astrophysics.
 
 import matplotlib.pyplot as plt
 import numpy
-import sys
-sys.path.append("../") # be able to access the base directory
 
 from base.constants import L_sun, M_sun, r_sun, rho_0_sun, T_0_sun, T_sun
 from base.util import normalize_data
@@ -30,13 +28,13 @@ def _shade_convective(x_data=None, is_convective=None):
     """
 
     # iterate through the x-axis data and add shading to the appropriate regions
-    for i, x in enumerate(x_data):
+    for i, x_pt in enumerate(x_data):
         # check that the is_convective array has designated this data point to be shaded
         if is_convective[i]:
             # exclude the last value to avoid an IndexError
             if i != len(x_data) - 1:
                 # add the shading between the current data point and the next
-                plt.axvspan(x, x_data[i + 1], facecolor="gray", alpha=0.2)
+                plt.axvspan(x_pt, x_data[i + 1], facecolor="gray", alpha=0.2)
 
 
 # ---------- # ASTROPHYSICAL PLOTTING FUNCTIONS # ---------- #
@@ -89,33 +87,32 @@ def luminosity_contribution_plot(stellar_structure, radius, density, temperature
     non-negligible energy generation rate. Such energy generation rates include the
     PP-chain and the CNO cycle.
 
-    :param stellar_structure: A module containing the relevant StellarStructure class
-        containing the stellar structure equations.
+    :param stellar_structure: A StellarStructure class containing the stellar structure equations.
     :param radius: An array of radius values.
     :param density: An array of density values.
     :param temperature: An array of temperature values.
     """
 
-    # extract the StellarStructure class from the inputted `stellar_structure` parameter
-    StellarStructure = stellar_structure.StellarStructure()
-
     # ---------- # CALCULATE THE LUMINOSITY CONTRIBUTIONS # ---------- #
 
+    # load the stellar structure class before accessing any of its methods
+    stellar_class = stellar_structure()
+
     # get the energy generation rate for the PP-chain
-    epsilon_pp = StellarStructure.pp_chain_energy(
+    epsilon_pp = stellar_class.pp_chain_energy(
         rho=density,
         T=temperature
     )
 
     # get the energy generation rate for the CNO cycle
-    epsilon_cno = StellarStructure.cno_cycle_energy(
+    epsilon_cno = stellar_class.cno_cycle_energy(
         rho=density,
         T=temperature,
         X_cno=None
     )
 
     # calculate the luminosity gradient using only the PP-chain
-    pp_chain_lumin_grad = StellarStructure.energy_equation(
+    pp_chain_lumin_grad = stellar_class.energy_equation(
         r=radius,
         rho=density,
         T=temperature,
@@ -123,7 +120,7 @@ def luminosity_contribution_plot(stellar_structure, radius, density, temperature
     )
 
     # calculate the luminosity gradient using only the CNO cycle
-    cno_cycle_lumin_grad = StellarStructure.energy_equation(
+    cno_cycle_lumin_grad = stellar_class.energy_equation(
         r=radius,
         rho=density,
         T=temperature,
@@ -131,7 +128,7 @@ def luminosity_contribution_plot(stellar_structure, radius, density, temperature
     )
 
     # calculate the luminosity gradient from the total energy generation rate
-    total_lumin_grad = StellarStructure.energy_equation(
+    total_lumin_grad = stellar_class.energy_equation(
         r=radius,
         rho=density,
         T=temperature,
@@ -153,7 +150,7 @@ def luminosity_contribution_plot(stellar_structure, radius, density, temperature
     # and radiative temperatures at each radius value
     is_convective_list = []
     for i, radius_value in enumerate(radius):
-        is_conv_value = StellarStructure.is_convective(
+        is_conv_value = stellar_class.is_convective(
             radius_value,
             density[i],
             temperature[i],
@@ -218,17 +215,16 @@ def opacity_contribution_plot(stellar_structure, radius, density, temperature, m
     Function to plot the mean opacity and each opacity value that contributed to the
     mean opacity calculation.
 
-    :param stellar_structure: A module containing the relevant StellarStructure class
-        containing the stellar structure equations.
+    :param stellar_structure: A StellarStructure class containing the stellar structure equations.
     :param radius: An array of radius values.
     :param density: An array of density values.
     :param temperature: An array of temperature values.
     """
 
-    # extract the StellarStructure class from the inputted `stellar_structure` parameter
-    StellarStructure = stellar_structure.StellarStructure()
-
     # ---------- # CALCULATE THE OPACITY CONTRIBUTIONS # ---------- #
+
+    # load the stellar structure class before accessing any of its methods
+    stellar_class = stellar_structure()
 
     kappa_es_list = []
     kappa_ff_list = []
@@ -238,10 +234,10 @@ def opacity_contribution_plot(stellar_structure, radius, density, temperature, m
     # calculate the opacity components and mean opacity at each radius value
     for i, radius_value in enumerate(radius):
         # calculate each opacity value
-        kappa_es = StellarStructure.opacity_e_scatter()
-        kappa_ff = StellarStructure.opacity_ff_scatter(rho=density[i], T=temperature[i])
-        kappa_hm = StellarStructure.opacity_hm_scatter(rho=density[i], T=temperature[i])
-        mean_opacity = StellarStructure.mean_opacity(rho=density[i], T=temperature[i])
+        kappa_es = stellar_class.opacity_e_scatter()
+        kappa_ff = stellar_class.opacity_ff_scatter(rho=density[i], T=temperature[i])
+        kappa_hm = stellar_class.opacity_hm_scatter(rho=density[i], T=temperature[i])
+        mean_opacity = stellar_class.mean_opacity(rho=density[i], T=temperature[i])
 
         # apply the logarithm to each of the calculated opacity values (base-10)
         log_kappa_es = numpy.log10(kappa_es)
@@ -276,7 +272,7 @@ def opacity_contribution_plot(stellar_structure, radius, density, temperature, m
     # and radiative temperatures at each radius value
     is_convective_list = []
     for i, radius_value in enumerate(radius):
-        is_conv_value = StellarStructure.is_convective(
+        is_conv_value = stellar_class.is_convective(
             radius_value,
             density[i],
             temperature[i],
@@ -347,33 +343,32 @@ def pressure_contribution_plot(stellar_structure, radius, density, temperature, 
     """
     Function to plot the total pressure and all pressure contributions.
 
-    :param stellar_structure: A module containing the relevant StellarStructure class
-        containing the stellar structure equations.
+    :param stellar_structure: A StellarStructure class containing the stellar structure equations.
     :param radius: An array of radius values.
     :param density: An array of density values.
     :param temperature: An array of temperature values.
     """
 
-    # extract the StellarStructure class from the inputted `stellar_structure` parameter
-    StellarStructure = stellar_structure.StellarStructure()
-
     # ---------- # CALCULATE THE PRESSURE CONTRIBUTIONS # ---------- #
 
+    # load the stellar structure class before accessing any of its methods
+    stellar_class = stellar_structure()
+
     # calculate the degeneracy pressure
-    deg_pressure = StellarStructure.degeneracy_pressure(density)
+    deg_pressure = stellar_class.degeneracy_pressure(density)
 
     # calculate the gas pressure
-    gas_pressure = StellarStructure.gas_pressure(
+    gas_pressure = stellar_class.gas_pressure(
         density,
         temperature,
-        mu=StellarStructure.mean_molec_weight()
+        mu=stellar_class.mean_molec_weight()
     )
 
     # calculate the photon gas pressure
-    photon_pressure = StellarStructure.photon_pressure(temperature)
+    photon_pressure = stellar_class.photon_pressure(temperature)
 
     # calculate the total pressure
-    total_pressure = StellarStructure.total_pressure(density, temperature)
+    total_pressure = stellar_class.total_pressure(density, temperature)
 
     # ---------- # NORMALIZE THE RADIUS AND PRESSURE DATASETS # ---------- #
 
@@ -407,7 +402,7 @@ def pressure_contribution_plot(stellar_structure, radius, density, temperature, 
     # and radiative temperatures at each radius value
     is_convective_list = []
     for i, radius_value in enumerate(radius):
-        is_conv_value = StellarStructure.is_convective(
+        is_conv_value = stellar_class.is_convective(
             radius_value,
             density[i],
             temperature[i],
@@ -456,42 +451,30 @@ def pressure_contribution_plot(stellar_structure, radius, density, temperature, 
     )
 
     # add annotations including useful stellar properties (adds context to the normalized data)
-    degeneracy_pressure_text = r'$P_{deg, c} = $' + "{} Pa".format(
-        format(deg_pressure[0], ".3E")
-    )
-    gas_pressure_text = r'$P_{gas, c} = $' + "{} Pa".format(
-        format(gas_pressure[0], ".3E")
-    )
-    photon_pressure_text = r'$P_{phot, c} = $' + "{} Pa".format(
-        format(photon_pressure[0], ".3E")
-    )
-    total_pressure_text = r'$P_{tot, c} = $' + "{} Pa".format(
-        format(total_pressure[0], ".3E")
+    deg_pressure_text = r'$P_{deg, c} = $' + f"{format(deg_pressure[0], '.3E')} Pa"
+    gas_pressure_text = r'$P_{gas, c} = $' + f"{format(gas_pressure[0], '.3E')} Pa"
+    pht_pressure_text = r'$P_{pht, c} = $' + f"{format(photon_pressure[0], '.3E')} Pa"
+    tot_pressure_text = r'$P_{tot, c} = $' + f"{format(total_pressure[0], '.3E')} Pa"
+    full_text = (
+        f"{deg_pressure_text}\n" \
+        f"{gas_pressure_text}\n" \
+        f"{pht_pressure_text}\n" \
+        f"{tot_pressure_text}"
     )
     plt.annotate(
-        "{}\n{}\n{}\n{}".format(
-            degeneracy_pressure_text,
-            gas_pressure_text,
-            photon_pressure_text,
-            total_pressure_text
-        ),
+        full_text,
         xy=(0.75, 0.4),
         xytext=(0.75, 0.4),
-        textcoords="axes fraction")
+        textcoords="axes fraction"
+    )
 
     # shade the convective regions
     _shade_convective(x_data=norm_radius, is_convective=is_convective)
 
-    # set the title
+    # set the title, labels, and legend
     plt.title("Pressure Contributions Plot")
-
-    # set the xlabel
     plt.xlabel(r'Relative Radius ($r / R_{\star}$)')
-
-    # set the ylabel
     plt.ylabel(r'Relative Pressure ($P / P_c$)')
-
-    # set the legend
     plt.legend(loc="upper right")
 
     # render the plot
@@ -502,8 +485,7 @@ def stellar_structure_plot(stellar_structure, radius, density, temperature, mass
     """
     Function to plot normalized stellar density, temperature, mass, and luminosity against radius.
 
-    :param stellar_structure: A module containing the relevant StellarStructure class
-        containing the stellar structure equations.
+    :param stellar_structure: A StellarStructure class containing the stellar structure equations.
     :param radius: An array of radius values.
     :param density: An array of density values.
     :param temperature: An array of temperature values.
@@ -511,15 +493,12 @@ def stellar_structure_plot(stellar_structure, radius, density, temperature, mass
     :param luminosity: An array of luminosity values.
     """
 
-    # extract the StellarStructure class from the inputted `stellar_structure` parameter
-    StellarStructure = stellar_structure.StellarStructure()
-
     # ---------- # NORMALIZE THE INPUT DATASETS # ---------- #
 
     # extract the stellar properties used to normalize the inputted datasets
     surf_radius = radius[-1]
-    central_density = density[0]
-    central_temp = temperature[0]
+    cen_density = density[0]
+    cen_temp = temperature[0]
     total_mass = mass[-1]
     total_luminosity = luminosity[-1]
 
@@ -535,7 +514,7 @@ def stellar_structure_plot(stellar_structure, radius, density, temperature, mass
     # normalize the stellar properties data
     norm_state = normalize_data(
         in_data=numpy.array([density, temperature, mass, luminosity]),
-        norm_values=[central_density, central_temp, total_mass, total_luminosity]
+        norm_values=[cen_density, cen_temp, total_mass, total_luminosity]
     )
 
     # extract the necessary datasets from the normalized state variable
@@ -550,7 +529,7 @@ def stellar_structure_plot(stellar_structure, radius, density, temperature, mass
     # and radiative temperatures at each radius value
     is_convective_list = []
     for i, radius_value in enumerate(radius):
-        is_conv_value = StellarStructure.is_convective(
+        is_conv_value = stellar_structure().is_convective(
             radius_value,
             density[i],
             temperature[i],
@@ -581,39 +560,35 @@ def stellar_structure_plot(stellar_structure, radius, density, temperature, mass
     plt.plot(norm_radius, norm_luminosity, label="Luminosity", color="blue", linestyle="dotted")
 
     # add annotations including useful stellar properties to add context
-    surface_radius_text = r'$R_{\star, surf} = $' + "{} m = {} ".format(
-        format(surf_radius, ".3E"),
-        round(surf_radius / r_sun, 3)
-    ) + r'$R_{\odot, surf}$'
-    central_density_text = r'$\rho_{\star, c} = $' + "{} $kg/m^3$ = {} ".format(
-        format(central_density, ".3E"),
-        round(central_density / rho_0_sun, 3)
-    ) + r'$\rho_{\odot, c}$'
-    central_temperature_text = r'$T_{\star, c} = $' + "{} K = {} ".format(
-        format(central_temp, ".3E"),
-        round(central_temp / T_0_sun, 3)
-    ) + r'$T_{\odot, c}$'
-    surface_temperature_text = r'$T_{\star, surf} = $' + "{} K = {} ".format(
-        format(surf_temp, ".3E"),
-        round(surf_temp / T_sun, 3)
-    ) + r'$T_{\odot, surf}$'
-    total_mass_text = r'$M_{\star} = $' + "{} kg = {} ".format(
-        format(total_mass, ".3E"),
-        round(total_mass / M_sun, 3)
-    ) + r'$M_{\odot}$'
-    total_luminosity_text = r'$L_{\star} = $' + "{} W = {} ".format(
-        format(total_luminosity, ".3E"),
-        round(total_luminosity / L_sun, 3)
-    ) + r'$L_{\odot}$'
+    surf_radius_text = r'$R_{\star, surf} = $' + \
+                       f"{format(surf_radius, '.3E')} m = {round(surf_radius / r_sun, 3)} " + \
+                       r'$R_{\odot, surf}$'
+    cen_density_text = r'$\rho_{\star, c} = $' + \
+                       f"{format(cen_density, '.3E')} $kg/m^3$ = {round(cen_density / rho_0_sun, 3)} " + \
+                       r'$\rho_{\odot, c}$'
+    cen_temp_text    = r'$T_{\star, c} = $' + \
+                       f"{format(cen_temp, '.3E')} K = {round(cen_temp / T_0_sun, 3)} " + \
+                       r'$T_{\odot, c}$'
+    surf_temp_text   = r'$T_{\star, surf} = $' + \
+                       f"{format(surf_temp, '.3E')} K = {round(surf_temp / T_sun, 3)} " + \
+                       r'$T_{\odot, surf}$'
+    tot_mass_text    = r'$M_{\star} = $' + \
+                       f"{format(total_mass, '.3E')} kg = {round(total_mass / M_sun, 3)} " + \
+                       r'$M_{\odot}$'
+    tot_lumin_text   = r'$L_{\star} = $' + \
+                       f"{format(total_luminosity, '.3E')} W = {round(total_luminosity / L_sun, 3)}" + \
+                       r'$L_{\odot}$'
+    full_text = (
+        f"{surf_radius_text}\n" \
+        f"{cen_density_text}\n" \
+        f"{cen_temp_text}\n" \
+        f"{surf_temp_text}\n" \
+        f"{tot_mass_text}\n" \
+        f"{tot_lumin_text}"
+    )
+
     plt.annotate(
-        "{}\n{}\n{}\n{}\n{}\n{}".format(
-            surface_radius_text,
-            central_density_text,
-            central_temperature_text,
-            surface_temperature_text,
-            total_mass_text,
-            total_luminosity_text
-        ),
+        full_text,
         xy=(0.6, 0.4),
         xytext=(0.6, 0.4),
         textcoords="axes fraction")
@@ -643,8 +618,7 @@ def plot_star(stellar_structure, radius, density, temperature, mass, luminosity)
     """
     Function to execute all the plotting functions pertaining to the generation of a single star.
 
-    :param stellar_structure: A module containing the relevant StellarStructure class
-        containing the stellar structure equations.
+    :param stellar_structure: A StellarStructure class containing the stellar structure equations.
     :param radius: An array of radius values.
     :param density: An array of density values.
     :param temperature: An array of temperature values.
