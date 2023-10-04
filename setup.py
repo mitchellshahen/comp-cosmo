@@ -12,7 +12,7 @@ functions in this environment.
 from setuptools import setup, find_packages
 
 setup(
-    name='chemistrygym',
+    name='astro_env',
     packages=find_packages(),
     install_requires=[
         'matplotlib',
